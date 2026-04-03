@@ -179,9 +179,64 @@ options:
 
 ## How It Works
 
+### aatable.py (table rendering)
+
 1. **Grapheme cluster segmentation** — splits text into visual units, handling ZWJ sequences (`👨‍👩‍👧`) and regional indicators (`🇯🇵`) as single glyphs
 2. **East Asian Width lookup** — uses `unicodedata.east_asian_width()` per codepoint
 3. **Width-aware padding** — pads with spaces based on calculated display width, not `len()`
+
+### mmd2ge.py (the zero-width space trick)
+
+Graph::Easy is a fantastic Perl tool that handles graph layout and ASCII art rendering. But like most non-CJK-aware tools, it uses `len()` (character count) to determine box widths. A CJK character like `入` is 1 char but 2 columns wide in a terminal, so boxes come out too narrow:
+
+```
++----+       ← len("入力") = 2, so border is 2+2 padding = 4 dashes
+| 入力 |     ← but "入力" renders as 4 columns wide. Overflow!
++----+
+```
+
+**The fix**: insert zero-width spaces (U+200B) after each wide character. U+200B is invisible in the terminal but counts toward `len()`:
+
+```python
+"入力"           # len=2, display_width=4  ← mismatch!
+"入力\u200b\u200b"  # len=4, display_width=4  ← match!
+```
+
+Now Graph::Easy sees `len()=4` and allocates a properly-sized box:
+
+```
++------+         ← len=4, so border is 4+2 padding = 6 dashes
+| 入力  |        ← 4 columns of CJK + 2 padding. Perfect!
++------+
+```
+
+No patches to Graph::Easy required. Pure Unix way: fix the data, not the tool.
+
+### Why not just fix Graph::Easy?
+
+1. It's a CPAN module — patching means forking and maintaining a fork forever
+2. The zero-width space trick works with **any** tool that uses `len()` for layout
+3. It composes: `mmd2ge.py` is a filter, not a monolith
+
+## The Darkness of Unicode Width
+
+If you've ever tried to align Japanese text in a terminal, you know the pain.
+
+**The core problem**: Unicode defines an "East Asian Width" property for every character, but terminals don't agree on how to render them:
+
+| EAW Category | macOS Terminal | Windows Terminal | The Spec Says |
+|--------------|---------------|-----------------|---------------|
+| **W** (Wide) | 2 | 2 | 2 |
+| **F** (Fullwidth) | 2 | 2 | 2 |
+| **Na** (Narrow) | 1 | 1 | 1 |
+| **H** (Halfwidth) | 1 | 1 | 1 |
+| **A** (Ambiguous) | **2** | **1** | **"depends"** |
+
+The "Ambiguous" category includes `①`, `α`, `♠`, `—` and hundreds of other characters. Unicode literally says the width is ambiguous. Thanks, Unicode.
+
+**Emoji make it worse**: `👨‍👩‍👧` is 7 codepoints (man + ZWJ + woman + ZWJ + girl) but renders as 1 glyph of width 2. `🇯🇵` is 2 codepoints (regional indicators J + P) but also 1 glyph of width 2. You can't calculate display width without understanding grapheme clusters.
+
+**The result**: `len("👨‍👩‍👧") = 7`, but `display_width("👨‍👩‍👧") = 2`. Every tool that uses `len()` for layout will produce garbage. AATable exists because this problem is real and nobody else seems to care.
 
 ## License
 
