@@ -75,6 +75,55 @@ docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' \
   | python3 aatable.py -f tsv --style bold --no-header
 ```
 
+## Mermaid Flowchart → ASCII Art
+
+Convert Mermaid flowcharts to ASCII art via [Graph::Easy](https://metacpan.org/pod/Graph::Easy):
+
+```bash
+# Install Graph::Easy (one time)
+cpanm Graph::Easy
+
+# Mermaid → ASCII art pipeline
+echo 'graph LR
+A[入力] --> B[パース]
+B --> C{判定}
+C -->|OK| D[出力]
+C -->|NG| E[エラー]' | python3 mmd2ge.py | graph-easy --as=boxart
+```
+
+Output:
+
+```
+               ┌────────┐
+               │  入力   │
+               └────────┘
+                 │
+                 ∨
+               ┌────────┐
+               │ パース  │
+               └────────┘
+                 │
+                 ∨
+┌──────┐  OK   ┌────────┐
+│ 出力  │ <──── │  判定   │
+└──────┘       └────────┘
+                 │ NG
+                 ∨
+               ┌────────┐
+               │ エラー  │
+               └────────┘
+```
+
+**How it works**: `mmd2ge.py` inserts zero-width spaces (U+200B) after CJK characters so that `len()` equals `display_width()`. This tricks Graph::Easy into allocating correctly-sized boxes without any patches to Graph::Easy itself.
+
+### Pipeline tools
+
+| Tool | Role |
+|------|------|
+| `aatable.py` | Markdown/CSV/TSV → ASCII Art table |
+| `mmd2ge.py` | Mermaid → Graph::Easy format (with CJK width fix) |
+| `aafixwidth.py` | Post-processor for fixing CJK width in existing AA |
+
 ## Box-Drawing Styles
 
 | Style | Preview |
