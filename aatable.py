@@ -14,6 +14,8 @@ Usage:
 import sys
 import csv
 import io
+import json
+import os
 import unicodedata
 import argparse
 from typing import List, Optional
@@ -113,7 +115,21 @@ def split_grapheme_clusters(text: str) -> List[str]:
 
 # Default: 1 for Windows Terminal / WSL2 / most modern terminals.
 # macOS Terminal.app uses 2. Override with --ambiguous-width 2.
-_ambiguous_width = 1
+# Auto-detected from ~/.aatable_profile.json if available.
+_PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
+
+
+def _load_ambiguous_width_from_profile() -> int:
+    """Load ambiguous_width from aacalibrate profile if available."""
+    try:
+        with open(_PROFILE_PATH, 'r', encoding='utf-8') as f:
+            profile = json.load(f)
+            return profile.get('ambiguous_width', 1)
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return 1
+
+
+_ambiguous_width = _load_ambiguous_width_from_profile()
 
 
 def _single_char_width(ch: str) -> int:
