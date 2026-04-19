@@ -1,10 +1,8 @@
+[日本語版はこちら / Japanese](README-ja.md)
+
 # AATable
 
-Convert tabular data (Markdown / CSV / TSV) to beautifully aligned ASCII Art tables in your terminal.
-
-Properly handles **CJK characters**, **East Asian Ambiguous width**, **emoji**, **ZWJ sequences**, and **flag emoji** so columns actually align in monospace terminals.
-
-## Demo
+Convert tabular data (Markdown / CSV / TSV) to beautifully aligned ASCII Art tables — with **full CJK, emoji, and East Asian Ambiguous width support** so columns actually align in monospace terminals.
 
 ```
 ╭────────────┬─────┬──────────╮
@@ -18,72 +16,117 @@ Properly handles **CJK characters**, **East Asian Ambiguous width**, **emoji**, 
 ╰────────────┴─────┴──────────╯
 ```
 
-## Install
+---
+
+## Table of Contents
+
+- [Why AATable exists](#why-aatable-exists)
+- [Quick Start](#quick-start)
+- [Scripts](#scripts)
+- [Usage Examples](#usage-examples)
+- [Box-Drawing Styles](#box-drawing-styles)
+- [CJK Width Handling](#cjk-width-handling)
+- [How It Works](#how-it-works)
+- [Options Reference](#options-reference)
+
+---
+
+## Why AATable exists
+
+Every terminal tool that builds tables uses `len()` to measure column widths.  
+`len("田中")` returns `2`. But `田中` renders as **4 columns** in a monospace terminal.  
+The result: misaligned borders, overflowing cells, broken tables.
+
+AATable replaces `len()` with a proper `display_width()` that accounts for:
+
+| Character type    | Example   | `len()` | `display_width()` |
+|-------------------|-----------|---------|-------------------|
+| ASCII             | `Hello`   | 5       | 5                 |
+| CJK               | `漢字`    | 2       | **4**             |
+| Fullwidth         | `Ａ１`    | 2       | **4**             |
+| Halfwidth Kana    | `ｱｲｳ`   | 3       | 3                 |
+| Ambiguous         | `①α♠`    | 3       | 3 or **6**        |
+| Emoji             | `😀🎉`    | 2       | **4**             |
+| ZWJ sequence      | `👨‍👩‍👧`     | 7 (!)   | **2**             |
+| Flag              | `🇯🇵`    | 2       | **2**             |
+
+---
+
+## Quick Start
 
 ```bash
-# No dependencies — just Python 3.8+
+# No dependencies — Python 3.8+ only
+# (Python 3.8 is EOL as of October 2024; Python 3.9+ recommended)
 git clone https://github.com/opaopa6969/AATable.git
 cd AATable
-chmod +x aatable.py
+chmod +x aatable.py aafixwidth.py mmd2ge.py aacalibrate.py
 ```
 
-## Usage
+Pipe any tabular data in:
 
 ```bash
-# Markdown table
+echo '| name     | age |
+|----------|-----|
+| 田中太郎 | 30  |
+| Alice    | 25  |' | python3 aatable.py
+```
+
+---
+
+## Scripts
+
+| Script            | Role                                                        |
+|-------------------|-------------------------------------------------------------|
+| `aatable.py`      | Markdown / CSV / TSV → ASCII Art table                      |
+| `mmd2ge.py`       | Mermaid flowchart → Graph::Easy format (with CJK width fix) |
+| `aafixwidth.py`   | Post-processor: fix CJK width in existing ASCII Art         |
+| `aacalibrate.py`  | Probe terminal to auto-detect Ambiguous character width     |
+
+---
+
+## Usage Examples
+
+### aatable.py — tabular data to ASCII Art
+
+```bash
+# Markdown table (stdin)
 echo '| a | b |
 |---|---|
 | 1 | 2 |' | python3 aatable.py
 
-# CSV
-cat data.csv | python3 aatable.py -f csv
+# CSV file
+python3 aatable.py -f csv data.csv
 
-# TSV (e.g. from psql, cut, awk)
-cat data.tsv | python3 aatable.py -f tsv
+# TSV from psql
+psql --csv -c "SELECT name, age FROM users LIMIT 5" mydb \
+  | python3 aatable.py -f csv
 
-# Auto-detect format (default)
-cat anything | python3 aatable.py
+# git log as a table
+git log --format='%h,%s,%an' -5 \
+  | python3 aatable.py -f csv --style round
 
-# Choose style
-cat data.csv | python3 aatable.py -f csv --style bold
+# docker ps
+docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' \
+  | python3 aatable.py -f tsv --style bold --no-header
 
-# File input
-python3 aatable.py input.md
-
-# Demo with all styles
-python3 aatable.py --demo
-```
-
-## Unix Way
-
-Pipe anything into it:
-
-```bash
-# PostgreSQL → table
-psql --csv -c "SELECT * FROM users LIMIT 10" mydb | python3 aatable.py -f csv
-
-# git log → table
-git log --format='%h,%s,%an' -5 | python3 aatable.py -f csv --style round
-
-# curl + jq → table
+# curl + jq
 curl -s https://api.example.com/data \
   | jq -r '["id","name"], (.[] | [.id,.name]) | @csv' \
   | python3 aatable.py -f csv
 
-# docker ps → table
-docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' \
-  | python3 aatable.py -f tsv --style bold --no-header
+# Show demo with all styles
+python3 aatable.py --demo
 ```
 
-## Mermaid Flowchart → ASCII Art
+### mmd2ge.py — Mermaid flowchart to ASCII Art
 
-Convert Mermaid flowcharts to ASCII art via [Graph::Easy](https://metacpan.org/pod/Graph::Easy):
+Converts Mermaid flowchart syntax to [Graph::Easy](https://metacpan.org/pod/Graph::Easy) input, inserting zero-width spaces after CJK characters so `len()` equals `display_width()`.
 
 ```bash
 # Install Graph::Easy (one time)
 cpanm Graph::Easy
 
-# Mermaid → ASCII art pipeline
+# Mermaid → ASCII Art pipeline
 echo 'graph LR
 A[入力] --> B[パース]
 B --> C{判定}
@@ -114,129 +157,173 @@ Output:
                └────────┘
 ```
 
-**How it works**: `mmd2ge.py` inserts zero-width spaces (U+200B) after CJK characters so that `len()` equals `display_width()`. This tricks Graph::Easy into allocating correctly-sized boxes without any patches to Graph::Easy itself.
+### aafixwidth.py — fix broken ASCII Art
 
-### Pipeline tools
+If you have ASCII Art already generated by a CJK-unaware tool:
 
-| Tool | Role |
-|------|------|
-| `aatable.py` | Markdown/CSV/TSV → ASCII Art table |
-| `mmd2ge.py` | Mermaid → Graph::Easy format (with CJK width fix) |
-| `aafixwidth.py` | Post-processor for fixing CJK width in existing AA |
+```bash
+graph-easy broken.dot | python3 aafixwidth.py
+cat broken-aa.txt | python3 aafixwidth.py
+```
+
+### aacalibrate.py — detect terminal Ambiguous width
+
+Run once to probe your terminal and save a profile:
+
+```bash
+python3 aacalibrate.py          # full probe → ~/.aatable_profile.json
+python3 aacalibrate.py --quick  # fast: Ambiguous + emoji only
+```
+
+`aatable.py` auto-loads `~/.aatable_profile.json` on startup, so you don't need to pass `--ambiguous-width` every time.
+
+---
 
 ## Box-Drawing Styles
 
-| Style | Preview |
-|-------|---------|
-| `single` (default) | `┌─┬─┐ │ │ │ └─┴─┘` |
-| `double` | `╔═╦═╗ ║ ║ ║ ╚═╩═╝` |
-| `bold` | `┏━┳━┓ ┃ ┃ ┃ ┗━┻━┛` |
-| `round` | `╭─┬─╮ │ │ │ ╰─┴─╯` |
-| `ascii` | `+-+-+ \| \| \| +-+-+` |
+| Style      | Characters                             |
+|------------|----------------------------------------|
+| `single`   | `┌─┬─┐ │ ├─┼─┤ └─┴─┘` (default)      |
+| `double`   | `╔═╦═╗ ║ ╠═╬═╣ ╚═╩═╝`               |
+| `bold`     | `┏━┳━┓ ┃ ┣━╋━┫ ┗━┻━┛`               |
+| `round`    | `╭─┬─╮ │ ├─┼─┤ ╰─┴─╯`               |
+| `ascii`    | `+-+-+ \| +-+-+ +-+-+`               |
+
+```bash
+python3 aatable.py --style double data.csv
+python3 aatable.py --style round  data.csv
+```
+
+---
 
 ## CJK Width Handling
 
-The core challenge of terminal table alignment with mixed scripts:
+### East Asian Width categories
 
-| Character Type | Example | Width | Unicode EAW |
-|---------------|---------|-------|-------------|
-| ASCII | `Hello` | 1 per char | Na (Narrow) |
-| CJK | `漢字` | 2 per char | W (Wide) |
-| Fullwidth | `Ａ１` | 2 per char | F (Fullwidth) |
-| Halfwidth Kana | `ｱｲｳ` | 1 per char | H (Halfwidth) |
-| Ambiguous | `①α♠` | **terminal-dependent** | A (Ambiguous) |
-| Emoji | `😀🎉` | 2 per glyph | W (Wide) |
-| ZWJ Sequence | `👨‍👩‍👧` | 2 (1 glyph) | Grapheme cluster |
-| Flag | `🇯🇵` | 2 (1 glyph) | Regional Indicator pair |
+Unicode assigns every character an [East Asian Width](https://unicode.org/reports/tr11/) property:
 
-### Ambiguous Width
+| EAW | Name       | Width | Examples        |
+|-----|------------|-------|-----------------|
+| W   | Wide       | 2     | CJK, Hiragana, Hangul |
+| F   | Fullwidth  | 2     | `Ａ` `１` `！` |
+| Na  | Narrow     | 1     | ASCII           |
+| H   | Halfwidth  | 1     | `ｱ` `ｲ` `ｳ`  |
+| A   | Ambiguous  | **?** | `①` `α` `♠` `—` |
+| N   | Neutral    | 1     | most symbols    |
 
-The `--ambiguous-width` (`-a`) flag controls how Unicode "Ambiguous" characters are measured:
+### The Ambiguous problem
 
-- **`-a 1`** (default): Correct for **Windows Terminal**, **VS Code**, most modern terminals
-- **`-a 2`**: Correct for **macOS Terminal.app**, **iTerm2** (CJK locale)
+Unicode literally defines the Ambiguous category as "terminal-dependent":
 
-## Options
+| Terminal                    | Ambiguous width |
+|-----------------------------|----------------|
+| Windows Terminal, VS Code   | 1 (default)    |
+| macOS Terminal.app, iTerm2  | 2              |
 
-```
-usage: aatable.py [-h] [--format {auto,md,csv,tsv}]
-                  [--style {single,double,bold,ascii,round}]
-                  [--padding PADDING] [--no-header]
-                  [--ambiguous-width {1,2}] [--demo]
-                  [file]
+Use `--ambiguous-width 2` for macOS Terminal, or run `aacalibrate.py` once to auto-detect.
 
-positional arguments:
-  file                  Input file (default: stdin)
+### Emoji and grapheme clusters
 
-options:
-  -f, --format          Input format (default: auto-detect)
-  -s, --style           Box-drawing style (default: single)
-  -p, --padding         Cell padding in spaces (default: 1)
-  --no-header           Do not treat first row as header
-  -a, --ambiguous-width Display width for Ambiguous chars (default: 1)
-  --demo                Show demo table
-```
+`len("👨‍👩‍👧") = 7` — seven codepoints joined by ZWJ.  
+`display_width("👨‍👩‍👧") = 2` — one glyph, two columns.
+
+AATable implements grapheme cluster segmentation to handle ZWJ sequences, regional indicator flag pairs (`🇯🇵`), and skin-tone modifier sequences correctly.
+
+---
 
 ## How It Works
 
-### aatable.py (table rendering)
+### aatable.py — width-aware table renderer
 
-1. **Grapheme cluster segmentation** — splits text into visual units, handling ZWJ sequences (`👨‍👩‍👧`) and regional indicators (`🇯🇵`) as single glyphs
-2. **East Asian Width lookup** — uses `unicodedata.east_asian_width()` per codepoint
-3. **Width-aware padding** — pads with spaces based on calculated display width, not `len()`
+1. **Parse** — detect format (Markdown / CSV / TSV) and extract rows
+2. **Grapheme cluster segmentation** — split each cell into visual units (ZWJ sequences, flag pairs, modifier sequences each become one cluster)
+3. **East Asian Width lookup** — `unicodedata.east_asian_width()` per codepoint
+4. **`pad_to_width()`** — pad cells with spaces based on `display_width()`, not `len()`
+5. **Render** — assemble box-drawing characters around correctly-sized cells
 
-### mmd2ge.py (the zero-width space trick)
+### mmd2ge.py — the zero-width space trick
 
-Graph::Easy is a fantastic Perl tool that handles graph layout and ASCII art rendering. But like most non-CJK-aware tools, it uses `len()` (character count) to determine box widths. A CJK character like `入` is 1 char but 2 columns wide in a terminal, so boxes come out too narrow:
+Graph::Easy is a Perl tool for graph layout and ASCII Art rendering. Like most non-CJK-aware tools it uses `len()` to size boxes. `入` is 1 character but 2 columns wide:
 
 ```
-+----+       ← len("入力") = 2, so border is 2+2 padding = 4 dashes
-| 入力 |     ← but "入力" renders as 4 columns wide. Overflow!
++----+       ← len("入力") = 2, border = 2 + 2 padding = 4
+| 入力 |     ← but "入力" renders as 4 columns → overflow!
 +----+
 ```
 
-**The fix**: insert zero-width spaces (U+200B) after each wide character. U+200B is invisible in the terminal but counts toward `len()`:
+The fix: insert U+200B (zero-width space) after each wide character. U+200B is invisible but increments `len()`:
 
 ```python
-"入力"           # len=2, display_width=4  ← mismatch!
-"入力\u200b\u200b"  # len=4, display_width=4  ← match!
+"入力"              # len=2, display_width=4  — mismatch
+"入\u200b力\u200b"  # len=4, display_width=4  — match
 ```
 
-Now Graph::Easy sees `len()=4` and allocates a properly-sized box:
+No patch to Graph::Easy required. Pure Unix approach: fix the data, not the tool.
+
+### aafixwidth.py — post-processing fixer
+
+For ASCII Art that was already rendered without CJK awareness, `aafixwidth.py` reads the box structure, measures actual display widths of cell content, and trims trailing spaces to restore alignment.
+
+### aacalibrate.py — cursor-position probing
+
+Writes test characters to the terminal, queries cursor position via ANSI DSR (`\033[6n`), and measures the column delta. Saves results to `~/.aatable_profile.json`. `aatable.py` reads this file at startup.
+
+---
+
+## Options Reference
+
+### aatable.py
 
 ```
-+------+         ← len=4, so border is 4+2 padding = 6 dashes
-| 入力  |        ← 4 columns of CJK + 2 padding. Perfect!
-+------+
+usage: aatable.py [-h] [-f {auto,md,csv,tsv}] [-s STYLE] [-p PADDING]
+                  [--no-header] [-a {1,2}] [--demo] [file]
+
+positional arguments:
+  file                    Input file (default: stdin)
+
+options:
+  -f, --format            Input format: auto|md|csv|tsv (default: auto)
+  -s, --style             Box style: single|double|bold|round|ascii (default: single)
+  -p, --padding           Cell padding in spaces (default: 1)
+  --no-header             First row is data, not a header
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  --demo                  Show demo table with all character types and styles
 ```
 
-No patches to Graph::Easy required. Pure Unix way: fix the data, not the tool.
+### mmd2ge.py
 
-### Why not just fix Graph::Easy?
+```
+usage: mmd2ge.py [file]
 
-1. It's a CPAN module — patching means forking and maintaining a fork forever
-2. The zero-width space trick works with **any** tool that uses `len()` for layout
-3. It composes: `mmd2ge.py` is a filter, not a monolith
+Reads Mermaid flowchart from file or stdin, outputs Graph::Easy format.
+Pipe output to: graph-easy --as=boxart
+```
 
-## The Darkness of Unicode Width
+### aafixwidth.py
 
-If you've ever tried to align Japanese text in a terminal, you know the pain.
+```
+usage: aafixwidth.py [-h] [-a {1,2}] [file]
 
-**The core problem**: Unicode defines an "East Asian Width" property for every character, but terminals don't agree on how to render them:
+positional arguments:
+  file                    Input file (default: stdin)
 
-| EAW Category | macOS Terminal | Windows Terminal | The Spec Says |
-|--------------|---------------|-----------------|---------------|
-| **W** (Wide) | 2 | 2 | 2 |
-| **F** (Fullwidth) | 2 | 2 | 2 |
-| **Na** (Narrow) | 1 | 1 | 1 |
-| **H** (Halfwidth) | 1 | 1 | 1 |
-| **A** (Ambiguous) | **2** | **1** | **"depends"** |
+options:
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+```
 
-The "Ambiguous" category includes `①`, `α`, `♠`, `—` and hundreds of other characters. Unicode literally says the width is ambiguous. Thanks, Unicode.
+### aacalibrate.py
 
-**Emoji make it worse**: `👨‍👩‍👧` is 7 codepoints (man + ZWJ + woman + ZWJ + girl) but renders as 1 glyph of width 2. `🇯🇵` is 2 codepoints (regional indicators J + P) but also 1 glyph of width 2. You can't calculate display width without understanding grapheme clusters.
+```
+usage: aacalibrate.py [-h] [-o OUTPUT] [-q] [--json] [--quiet]
 
-**The result**: `len("👨‍👩‍👧") = 7`, but `display_width("👨‍👩‍👧") = 2`. Every tool that uses `len()` for layout will produce garbage. AATable exists because this problem is real and nobody else seems to care.
+options:
+  -o, --output            Profile output path (default: ~/.aatable_profile.json)
+  -q, --quick             Quick mode: Ambiguous + emoji only
+  --json                  Write profile JSON to stdout
+  --quiet                 Suppress progress output
+```
+
+---
 
 ## License
 
