@@ -14,7 +14,7 @@ Usage:
 import sys
 import re
 import unicodedata
-from typing import List, Optional, Tuple
+from typing import List
 
 
 # ─────────────────────────────────────────────
@@ -70,71 +70,6 @@ H_CHARS = set('-=')
 V_CHARS = set('|')
 CORNER_CHARS = set('+')
 BORDER_CHARS = H_CHARS | V_CHARS | CORNER_CHARS
-
-
-def find_boxes(lines: List[str]) -> List[dict]:
-    """Find rectangular boxes in the ASCII art.
-
-    A box is identified by its top-left '+' corner and traced to find
-    its full extent.
-    """
-    boxes = []
-    height = len(lines)
-    if height == 0:
-        return boxes
-
-    for row in range(height):
-        col = 0
-        while col < len(lines[row]):
-            if lines[row][col] == '+':
-                box = trace_box(lines, row, col)
-                if box:
-                    boxes.append(box)
-            col += 1
-
-    return boxes
-
-
-def trace_box(lines: List[str], top_row: int, left_col: int) -> Optional[dict]:
-    """Try to trace a complete box starting from a '+' at (top_row, left_col)."""
-    line = lines[top_row]
-
-    # Find the right edge of the top border
-    right_col = left_col + 1
-    while right_col < len(line) and line[right_col] in H_CHARS:
-        right_col += 1
-
-    if right_col >= len(line) or line[right_col] != '+':
-        return None
-
-    box_width_chars = right_col - left_col + 1
-    if box_width_chars < 3:
-        return None
-
-    # Find the bottom edge
-    bottom_row = top_row + 1
-    while bottom_row < len(lines):
-        if left_col < len(lines[bottom_row]) and lines[bottom_row][left_col] == '+':
-            # Check if this is the bottom border
-            if right_col < len(lines[bottom_row]) and lines[bottom_row][right_col] == '+':
-                break
-        elif left_col < len(lines[bottom_row]) and lines[bottom_row][left_col] == '|':
-            bottom_row += 1
-            continue
-        else:
-            return None
-        bottom_row += 1
-
-    if bottom_row >= len(lines):
-        return None
-
-    return {
-        'top': top_row,
-        'bottom': bottom_row,
-        'left': left_col,
-        'right': right_col,
-        'width_chars': box_width_chars,
-    }
 
 
 def fix_aa_widths(text: str) -> str:
