@@ -319,6 +319,7 @@ def render_aa_table(
     style_name: str = 'single',
     padding: int = 1,
     header: bool = True,
+    align: str = 'left',
 ) -> str:
     """Render rows as an ASCII art table with proper width calculation.
 
@@ -327,6 +328,7 @@ def render_aa_table(
         style_name: Box-drawing style name.
         padding: Spaces inside each cell on each side.
         header: If True, first row is rendered as a header with separator.
+        align: Cell text alignment: 'left', 'right', or 'center'.
 
     Returns:
         Multi-line string of the rendered table.
@@ -359,7 +361,7 @@ def render_aa_table(
     def data_row(row: List[str]) -> str:
         cells = []
         for i, cell in enumerate(row):
-            padded = pad_to_width(cell, col_widths[i])
+            padded = pad_to_width(cell, col_widths[i], align=align)
             cells.append(' ' * padding + padded + ' ' * padding)
         return style['v'] + style['v'].join(cells) + style['v']
 
@@ -415,6 +417,10 @@ def main():
         help='Display width for Ambiguous characters (default: 1 for Windows/WSL, use 2 for macOS Terminal)',
     )
     parser.add_argument(
+        '--align', '-A', choices=['left', 'right', 'center'], default='left',
+        help='Cell text alignment: left|right|center (default: left)',
+    )
+    parser.add_argument(
         '--demo', action='store_true',
         help='Show a demo table with various character types',
     )
@@ -438,7 +444,7 @@ def main():
             ['混在', 'Hello世界!', '11', 'Mixed'],
             ['絵文字', '\U0001f600\U0001f389', '4', 'Emoji (W)'],
         ]
-        print(render_aa_table(demo_rows, style_name=args.style, padding=args.padding))
+        print(render_aa_table(demo_rows, style_name=args.style, padding=args.padding, align=args.align))
 
         print()
         print('-- All styles demo --')
@@ -482,6 +488,7 @@ def main():
         style_name=args.style,
         padding=args.padding,
         header=not args.no_header,
+        align=args.align,
     ))
 
 

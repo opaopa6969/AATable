@@ -276,7 +276,7 @@ Writes test characters to the terminal, queries cursor position via ANSI DSR (`\
 
 ```
 usage: aatable.py [-h] [-f {auto,md,csv,tsv}] [-s STYLE] [-p PADDING]
-                  [--no-header] [-a {1,2}] [--demo] [file]
+                  [--no-header] [-a {1,2}] [-A {left,right,center}] [--demo] [file]
 
 positional arguments:
   file                    Input file (default: stdin)
@@ -287,6 +287,7 @@ options:
   -p, --padding           Cell padding in spaces (default: 1)
   --no-header             First row is data, not a header
   -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  -A, --align             Cell text alignment: left|right|center (default: left)
   --demo                  Show demo table with all character types and styles
 ```
 
