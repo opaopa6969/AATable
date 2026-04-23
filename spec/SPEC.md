@@ -1593,3 +1593,196 @@ export LANG=ja_JP.UTF-8
 ---
 
 *本文書は AATable v0.4.0 の実装（`aatable.py`, `aafixwidth.py`, `mmd2ge.py`, `aacalibrate.py`）を全量精査して作成された仕様書である。*
+
+---
+
+## 13. アーキテクチャ図（Mermaid）
+
+### 13.1 4 スクリプトの関係（graph TB）
+
+4 つのスクリプトとデータフロー・外部ツールの全体関係を示す。
+
+```mermaid
+graph TB
+    INPUT_TABLE["表形式データ\n(Markdown / CSV / TSV)"]
+    INPUT_MMD["Mermaid フローチャート\n(.mmd)"]
+    PROFILE["~/.aatable_profile.json"]
+    GE_OUT["Graph::Easy 構文"]
+    AA_FIXED["修正済み ASCII Art"]
+    AA_TABLE["ASCII Art テーブル"]
+    AA_FLOW["ASCII Art フローチャート"]
+
+    subgraph scripts["AATable スクリプト群"]
+        AATABLE["aatable.py\nMarkdown/CSV/TSV → テーブル"]
+        MMD2GE["mmd2ge.py\nMermaid → Graph::Easy"]
+        AAFIXWIDTH["aafixwidth.py\nCJK 幅ずれ修正"]
+        AACALIBRATE["aacalibrate.py\nターミナル幅実測"]
+    end
+
+    subgraph external["外部ツール"]
+        GRAPHEASY["graph-easy\n(CPAN)"]
+    end
+
+    INPUT_TABLE --> AATABLE
+    PROFILE -->|ambiguous_width 自動読み込み| AATABLE
+    AATABLE --> AA_TABLE
+
+    INPUT_MMD --> MMD2GE
+    MMD2GE --> GE_OUT
+    GE_OUT --> GRAPHEASY
+    GRAPHEASY --> AA_FIXED
+    AA_FIXED --> AAFIXWIDTH
+    AAFIXWIDTH --> AA_FLOW
+
+    AACALIBRATE -->|プロファイル生成| PROFILE
+
+    style scripts fill:#f0f4ff,stroke:#3366cc
+    style external fill:#fff8e1,stroke:#f9a825
+```
+
+### 13.2 display_width / pad_to_width 判定フロー（flowchart）
+
+`display_width()` による文字幅計算と `pad_to_width()` によるパディング生成の判定ロジック。
+
+```mermaid
+flowchart TD
+    START(["display_width(text) 開始"])
+    SPLIT["split_grapheme_clusters(text)\nグラフェームクラスターに分割"]
+    EACH["各クラスターを処理"]
+    IS_ZWJ{"U+200D ZWJ\nを含む?"}
+    IS_RI{"先頭が地域指標\nU+1F1E6–U+1F1FF?"}
+    IS_EMOJI{"_is_emoji_base()\n先頭コードポイント?"}
+    EAW["unicodedata.east_asian_width()\nEAW を取得"]
+    IS_WF{"EAW == 'W'\nまたは 'F'?"}
+    IS_AMB{"EAW == 'A'\n(Ambiguous)?"}
+    W2_ZWJ["幅 = 2\n(ZWJ シーケンス)"]
+    W2_RI["幅 = 2\n(国旗ペア)"]
+    W2_EMOJI["幅 = 2\n(絵文字ベース)"]
+    W2_WF["幅 = 2\n(Wide / Fullwidth)"]
+    W_AMB["幅 = _ambiguous_width\n(1 または 2)"]
+    W1["幅 = 1\n(Na / H / N)"]
+    SUM["幅の合計 = display_width"]
+
+    PAD_START(["pad_to_width(text, target, align) 開始"])
+    CALC_PAD["padding = max(0, target - display_width(text))"]
+    IS_RIGHT{"align == 'right'?"}
+    IS_CENTER{"align == 'center'?"}
+    PAD_RIGHT["' ' * padding + text"]
+    PAD_CENTER["' ' * (p//2) + text\n+ ' ' * (p - p//2)"]
+    PAD_LEFT["text + ' ' * padding"]
+    PAD_END(["パディング済み文字列を返す"])
+
+    START --> SPLIT --> EACH
+    EACH --> IS_ZWJ
+    IS_ZWJ -- Yes --> W2_ZWJ
+    IS_ZWJ -- No --> IS_RI
+    IS_RI -- Yes --> W2_RI
+    IS_RI -- No --> IS_EMOJI
+    IS_EMOJI -- Yes --> W2_EMOJI
+    IS_EMOJI -- No --> EAW --> IS_WF
+    IS_WF -- Yes --> W2_WF
+    IS_WF -- No --> IS_AMB
+    IS_AMB -- Yes --> W_AMB
+    IS_AMB -- No --> W1
+    W2_ZWJ & W2_RI & W2_EMOJI & W2_WF & W_AMB & W1 --> SUM
+
+    SUM --> PAD_START --> CALC_PAD --> IS_RIGHT
+    IS_RIGHT -- Yes --> PAD_RIGHT --> PAD_END
+    IS_RIGHT -- No --> IS_CENTER
+    IS_CENTER -- Yes --> PAD_CENTER --> PAD_END
+    IS_CENTER -- No --> PAD_LEFT --> PAD_END
+```
+
+### 13.3 render_aa_table パイプライン（sequenceDiagram）
+
+`aatable.py` の `main()` から `render_aa_table()` に至るまでの処理シーケンス。
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant main as main()
+    participant profile as _load_ambiguous_width<br/>_from_profile()
+    participant parse as parse_auto()<br/>/ parse_md_table()<br/>/ parse_csv()
+    participant render as render_aa_table()
+    participant pad as pad_to_width()
+    participant stdout as stdout
+
+    User->>main: python3 aatable.py [options] [file]
+    main->>profile: モジュールロード時に自動実行
+    profile-->>main: _ambiguous_width (1 or 2)
+
+    main->>main: argparse でオプション解析
+    Note over main: --ambiguous-width 指定時は<br/>_ambiguous_width を上書き
+
+    main->>parse: lines を渡す
+    parse->>parse: Markdown 行を検出?
+    alt Markdown
+        parse-->>main: rows (List[List[str]])
+    else TSV
+        parse-->>main: rows
+    else CSV
+        parse-->>main: rows
+    end
+
+    main->>render: rows, style, padding, header, align
+    render->>render: 列数正規化 (max_cols)
+    render->>render: 列幅計算 (display_width per cell)
+    render->>render: top_line / mid_line / bot_line 生成
+
+    loop 各データ行
+        render->>pad: cell, col_width, align
+        pad-->>render: パディング済みセル文字列
+        render->>render: data_row 組み立て
+        Note over render: header 判定で mid_line 挿入
+    end
+
+    render-->>main: ASCII Art テーブル文字列
+    main->>stdout: print(result)
+    stdout-->>User: 整形済みテーブル
+```
+
+### 13.4 プロファイル自動読み込みの状態遷移（stateDiagram）
+
+`aatable.py` 起動時のプロファイル読み込みと `_ambiguous_width` の確定までの状態遷移。
+
+```mermaid
+stateDiagram-v2
+    [*] --> ModuleLoad : python3 aatable.py 起動
+
+    ModuleLoad --> TryOpenProfile : _load_ambiguous_width_from_profile() 呼び出し
+
+    TryOpenProfile --> ProfileFound : ファイルが存在する
+    TryOpenProfile --> ProfileMissing : FileNotFoundError
+
+    ProfileFound --> ParseJSON : json.load()
+    ParseJSON --> JSONValid : 正常にパース
+    ParseJSON --> JSONBroken : JSONDecodeError
+
+    JSONValid --> FieldExists : 'ambiguous_width' キーあり
+    JSONValid --> FieldMissing : 'ambiguous_width' キーなし
+
+    FieldExists --> SetFromProfile : _ambiguous_width = profile['ambiguous_width']
+    FieldMissing --> SetDefault1 : dict.get('ambiguous_width', 1) → 1
+    JSONBroken --> SetDefault1
+    ProfileMissing --> SetDefault1
+
+    SetFromProfile --> CheckCLI : main() で argparse 解析
+    SetDefault1 --> CheckCLI
+
+    CheckCLI --> CLISpecified : --ambiguous-width 指定あり\n(v0.4.0 では常にここへ)
+    CheckCLI --> CLINotSpecified : --ambiguous-width 未指定\n(将来の修正後)
+
+    CLISpecified --> OverrideWithCLI : _ambiguous_width = args.ambiguous_width
+    CLINotSpecified --> KeepProfile : プロファイル値を維持
+
+    OverrideWithCLI --> Ready : _ambiguous_width 確定
+    KeepProfile --> Ready
+
+    Ready --> [*] : render_aa_table() へ
+
+    note right of CLISpecified
+        v0.4.0 既知問題:
+        argparse default=1 のため
+        未指定でも 1 で上書きされる
+    end note
+```
