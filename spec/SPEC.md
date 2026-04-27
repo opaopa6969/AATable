@@ -557,11 +557,15 @@ AATable のスクリプトはいずれも単一パスのテキスト処理パイ
 
 `parse_md_table()` は各行を独立して処理するシンプルなループである。前後の行の状態を保持しない。
 
-```
-各行 → セパレータ行か？ → スキップ
-      → 空行か？       → スキップ
-      → | で始まるか？ → セルを抽出してリストに追加
-      → 上記以外       → スキップ
+```mermaid
+flowchart TD
+    ROW["各行"] --> SEP{"セパレータ行か？"}
+    SEP -- Yes --> SKIP1["スキップ"]
+    SEP -- No --> EMPTY{"空行か？"}
+    EMPTY -- Yes --> SKIP2["スキップ"]
+    EMPTY -- No --> PIPE{"| で始まるか？"}
+    PIPE -- Yes --> EXTRACT["セルを抽出してリストに追加"]
+    PIPE -- No --> SKIP3["スキップ"]
 ```
 
 ### 4.3 Mermaid パーサの暗黙的状態
@@ -571,44 +575,47 @@ AATable のスクリプトはいずれも単一パスのテキスト処理パイ
 - `direction`: 方向宣言（最後に見つかった値で上書き）
 - `node_labels`: ノード ID → (label, shape) の辞書（行を読み進めるにつれて更新）
 
-```
-各行 → graph 宣言か？    → direction を更新
-      → ステートメント分割（; 区切り）
-          → エッジか？ → Graph::Easy 行を追加
-          → ノード定義か？ → Graph::Easy 行を追加
-          → それ以外  → スキップ
+```mermaid
+flowchart TD
+    ROW["各行"] --> GRAPH{"graph 宣言か？"}
+    GRAPH -- Yes --> DIR["direction を更新"]
+    GRAPH -- No --> SPLIT["ステートメント分割（; 区切り）"]
+    SPLIT --> EDGE{"エッジか？"}
+    EDGE -- Yes --> GE1["Graph::Easy 行を追加"]
+    EDGE -- No --> NODE{"ノード定義か？"}
+    NODE -- Yes --> GE2["Graph::Easy 行を追加"]
+    NODE -- No --> SKIP["スキップ"]
 ```
 
 ### 4.4 ターミナル計測における状態変化
 
 `aacalibrate.py` はターミナルを raw モードへ切り替えるという副作用を持つ。これは FSM 的な「状態」だが、`finally` ブロックで必ず復元されるため、観測可能な状態変化は一時的である。
 
-```
-[通常モード]
-    │ tty.setraw()
-    ▼
-[raw モード] ← 計測ループ（各文字に対して独立）
-    │ termios.tcsetattr()（finally）
-    ▼
-[通常モード]
+```mermaid
+stateDiagram-v2
+    [*] --> 通常モード
+    通常モード --> rawモード : tty.setraw()
+    rawモード --> rawモード : 計測ループ（各文字に対して独立）
+    rawモード --> 通常モード : termios.tcsetattr()（finally）
+    通常モード --> [*]
 ```
 
 ### 4.5 aafixwidth.py の処理分岐
 
 `fix_aa_widths()` はボックス構造の検出結果によって 2 種の処理パスに分岐する:
 
-```
-入力テキスト
-    │
-    ▼
-find_column_positions() でボックス構造を検出
-    │
-    ├── 検出できた → fix_content_line() でカラム位置ベースの補正
-    │
-    └── 検出できない → fix_lines_simple() で行単位の補正
-    │
-    ▼
-修正済みテキスト出力
+```mermaid
+flowchart TD
+    IN["入力テキスト"]
+    DETECT["find_column_positions() でボックス構造を検出"]
+    FOUND{"検出できた？"}
+    FIX_COL["fix_content_line()<br/>カラム位置ベースの補正"]
+    FIX_SIMPLE["fix_lines_simple()<br/>行単位の補正"]
+    OUT["修正済みテキスト出力"]
+
+    IN --> DETECT --> FOUND
+    FOUND -- Yes --> FIX_COL --> OUT
+    FOUND -- No --> FIX_SIMPLE --> OUT
 ```
 
 ---
@@ -621,11 +628,14 @@ CJK・絵文字対応の「表示幅」計算関数。Python の `len()` に代�
 
 **アルゴリズム（aatable.py 版）:**
 
-```
-display_width(text)
-  → split_grapheme_clusters(text)  # 視覚的単位に分割
-  → grapheme_width(cluster)        # 各クラスターの幅を計算
-  → sum(widths)                    # 合計
+```mermaid
+flowchart LR
+    DW["display_width(text)"]
+    SGC["split_grapheme_clusters(text)<br/>視覚的単位に分割"]
+    GW["grapheme_width(cluster)<br/>各クラスターの幅を計算"]
+    SUM["sum(widths)<br/>合計"]
+
+    DW --> SGC --> GW --> SUM
 ```
 
 **文字種別の期待動作:**
@@ -890,22 +900,29 @@ python3 aacalibrate.py [OPTIONS]
 
 ### 6.3 データフロー図
 
-```
-表形式データパイプライン:
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ psql --csv   │ ──> │  aatable.py  │ ──> │    stdout    │
-│ git log --   │     └──────────────┘     └──────────────┘
-│ docker ps    │           ↑
-└──────────────┘    ~/.aatable_profile.json
-                          ↑
-                  ┌───────────────────┐
-                  │  aacalibrate.py   │
-                  └───────────────────┘
+```mermaid
+flowchart LR
+    subgraph table_pipeline["表形式データパイプライン"]
+        DATASRC["psql --csv<br/>git log<br/>docker ps"]
+        AATABLE["aatable.py"]
+        STDOUT1["stdout"]
+        PROFILE["~/.aatable_profile.json"]
+        AACALIB["aacalibrate.py"]
 
-Mermaid フローチャートパイプライン:
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ flow.mmd     │ ──> │  mmd2ge.py   │ ──> │  graph-easy  │ ──> │ aafixwidth   │ ──> │    stdout    │
-└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+        DATASRC --> AATABLE --> STDOUT1
+        PROFILE -->|ambiguous_width| AATABLE
+        AACALIB -->|プロファイル生成| PROFILE
+    end
+
+    subgraph mmd_pipeline["Mermaid フローチャートパイプライン"]
+        MMD["flow.mmd"]
+        MMD2GE["mmd2ge.py"]
+        GE["graph-easy"]
+        AAFIX["aafixwidth.py"]
+        STDOUT2["stdout"]
+
+        MMD --> MMD2GE --> GE --> AAFIX --> STDOUT2
+    end
 ```
 
 ### 6.4 エラー境界
@@ -1604,8 +1621,8 @@ export LANG=ja_JP.UTF-8
 
 ```mermaid
 graph TB
-    INPUT_TABLE["表形式データ\n(Markdown / CSV / TSV)"]
-    INPUT_MMD["Mermaid フローチャート\n(.mmd)"]
+    INPUT_TABLE["表形式データ<br/>(Markdown / CSV / TSV)"]
+    INPUT_MMD["Mermaid フローチャート<br/>(.mmd)"]
     PROFILE["~/.aatable_profile.json"]
     GE_OUT["Graph::Easy 構文"]
     AA_FIXED["修正済み ASCII Art"]
@@ -1613,14 +1630,14 @@ graph TB
     AA_FLOW["ASCII Art フローチャート"]
 
     subgraph scripts["AATable スクリプト群"]
-        AATABLE["aatable.py\nMarkdown/CSV/TSV → テーブル"]
-        MMD2GE["mmd2ge.py\nMermaid → Graph::Easy"]
-        AAFIXWIDTH["aafixwidth.py\nCJK 幅ずれ修正"]
-        AACALIBRATE["aacalibrate.py\nターミナル幅実測"]
+        AATABLE["aatable.py<br/>Markdown/CSV/TSV → テーブル"]
+        MMD2GE["mmd2ge.py<br/>Mermaid → Graph::Easy"]
+        AAFIXWIDTH["aafixwidth.py<br/>CJK 幅ずれ修正"]
+        AACALIBRATE["aacalibrate.py<br/>ターミナル幅実測"]
     end
 
     subgraph external["外部ツール"]
-        GRAPHEASY["graph-easy\n(CPAN)"]
+        GRAPHEASY["graph-easy<br/>(CPAN)"]
     end
 
     INPUT_TABLE --> AATABLE
@@ -1647,20 +1664,20 @@ graph TB
 ```mermaid
 flowchart TD
     START(["display_width(text) 開始"])
-    SPLIT["split_grapheme_clusters(text)\nグラフェームクラスターに分割"]
+    SPLIT["split_grapheme_clusters(text)<br/>グラフェームクラスターに分割"]
     EACH["各クラスターを処理"]
-    IS_ZWJ{"U+200D ZWJ\nを含む?"}
-    IS_RI{"先頭が地域指標\nU+1F1E6–U+1F1FF?"}
-    IS_EMOJI{"_is_emoji_base()\n先頭コードポイント?"}
-    EAW["unicodedata.east_asian_width()\nEAW を取得"]
-    IS_WF{"EAW == 'W'\nまたは 'F'?"}
-    IS_AMB{"EAW == 'A'\n(Ambiguous)?"}
-    W2_ZWJ["幅 = 2\n(ZWJ シーケンス)"]
-    W2_RI["幅 = 2\n(国旗ペア)"]
-    W2_EMOJI["幅 = 2\n(絵文字ベース)"]
-    W2_WF["幅 = 2\n(Wide / Fullwidth)"]
-    W_AMB["幅 = _ambiguous_width\n(1 または 2)"]
-    W1["幅 = 1\n(Na / H / N)"]
+    IS_ZWJ{"U+200D ZWJ<br/>を含む?"}
+    IS_RI{"先頭が地域指標<br/>U+1F1E6–U+1F1FF?"}
+    IS_EMOJI{"_is_emoji_base()<br/>先頭コードポイント?"}
+    EAW["unicodedata.east_asian_width()<br/>EAW を取得"]
+    IS_WF{"EAW == 'W'<br/>または 'F'?"}
+    IS_AMB{"EAW == 'A'<br/>(Ambiguous)?"}
+    W2_ZWJ["幅 = 2<br/>(ZWJ シーケンス)"]
+    W2_RI["幅 = 2<br/>(国旗ペア)"]
+    W2_EMOJI["幅 = 2<br/>(絵文字ベース)"]
+    W2_WF["幅 = 2<br/>(Wide / Fullwidth)"]
+    W_AMB["幅 = _ambiguous_width<br/>(1 または 2)"]
+    W1["幅 = 1<br/>(Na / H / N)"]
     SUM["幅の合計 = display_width"]
 
     PAD_START(["pad_to_width(text, target, align) 開始"])
@@ -1668,7 +1685,7 @@ flowchart TD
     IS_RIGHT{"align == 'right'?"}
     IS_CENTER{"align == 'center'?"}
     PAD_RIGHT["' ' * padding + text"]
-    PAD_CENTER["' ' * (p//2) + text\n+ ' ' * (p - p//2)"]
+    PAD_CENTER["' ' * (p//2) + text<br/>+ ' ' * (p - p//2)"]
     PAD_LEFT["text + ' ' * padding"]
     PAD_END(["パディング済み文字列を返す"])
 
@@ -1769,8 +1786,8 @@ stateDiagram-v2
     SetFromProfile --> CheckCLI : main() で argparse 解析
     SetDefault1 --> CheckCLI
 
-    CheckCLI --> CLISpecified : --ambiguous-width 指定あり\n(v0.4.0 では常にここへ)
-    CheckCLI --> CLINotSpecified : --ambiguous-width 未指定\n(将来の修正後)
+    CheckCLI --> CLISpecified : --ambiguous-width 指定あり (v0.4.0 では常にここへ)
+    CheckCLI --> CLINotSpecified : --ambiguous-width 未指定 (将来の修正後)
 
     CLISpecified --> OverrideWithCLI : _ambiguous_width = args.ambiguous_width
     CLINotSpecified --> KeepProfile : プロファイル値を維持
