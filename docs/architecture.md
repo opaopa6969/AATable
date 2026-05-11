@@ -8,14 +8,17 @@ AATable is four Python scripts. Each is a composable Unix filter — it reads fr
 
 ## Script Roles
 
-```
-aacalibrate.py   ──→  ~/.aatable_profile.json
-                                │
-                                ▼
-stdin/file  ──→  aatable.py  ──→  stdout   (table rendering)
+```mermaid
+flowchart LR
+    AC[aacalibrate.py] --> PJ["~/.aatable_profile.json"]
+    PJ --> AT
+    IN1[stdin/file] --> AT[aatable.py]
+    AT --> OUT1["stdout<br/>(table rendering)"]
 
-stdin/file  ──→  mmd2ge.py   ──→  graph-easy  ──→  aafixwidth.py  ──→  stdout
-                 (Mermaid→GE)     (layout)         (CJK fix)
+    IN2[stdin/file] --> M2["mmd2ge.py<br/>(Mermaid→GE)"]
+    M2 --> GE["graph-easy<br/>(layout)"]
+    GE --> AFW["aafixwidth.py<br/>(CJK fix)"]
+    AFW --> OUT2[stdout]
 ```
 
 | Script           | Input               | Output                 | Dependency       |
@@ -179,21 +182,11 @@ _ambiguous_width = _load_ambiguous_width_from_profile()
 
 ## Data Flow Summary
 
-```
-Input text
-    │
-    ▼
-split_grapheme_clusters()   — visual unit segmentation
-    │
-    ▼  (list of clusters)
-grapheme_width()            — EAW lookup per cluster
-    │
-    ▼  (integer width)
-pad_to_width()              — space-pad to column width
-    │
-    ▼  (padded cell string)
-render_aa_table()           — assemble box-drawing characters
-    │
-    ▼
-stdout
+```mermaid
+flowchart TD
+    A[Input text] --> B["split_grapheme_clusters()<br/>— visual unit segmentation"]
+    B -->|list of clusters| C["grapheme_width()<br/>— EAW lookup per cluster"]
+    C -->|integer width| D["pad_to_width()<br/>— space-pad to column width"]
+    D -->|padded cell string| E["render_aa_table()<br/>— assemble box-drawing characters"]
+    E --> F[stdout]
 ```

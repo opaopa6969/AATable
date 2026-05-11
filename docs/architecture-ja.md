@@ -9,14 +9,17 @@ AATable は 4 つの Python スクリプトで構成されています。
 
 ## スクリプトの役割
 
-```
-aacalibrate.py   ──→  ~/.aatable_profile.json
-                                │
-                                ▼
-stdin/file  ──→  aatable.py  ──→  stdout   (テーブルレンダリング)
+```mermaid
+flowchart LR
+    AC[aacalibrate.py] --> PJ["~/.aatable_profile.json"]
+    PJ --> AT
+    IN1[stdin/file] --> AT[aatable.py]
+    AT --> OUT1["stdout<br/>(テーブルレンダリング)"]
 
-stdin/file  ──→  mmd2ge.py   ──→  graph-easy  ──→  aafixwidth.py  ──→  stdout
-                 (Mermaid→GE)     (レイアウト)      (CJK 修正)
+    IN2[stdin/file] --> M2["mmd2ge.py<br/>(Mermaid→GE)"]
+    M2 --> GE["graph-easy<br/>(レイアウト)"]
+    GE --> AFW["aafixwidth.py<br/>(CJK 修正)"]
+    AFW --> OUT2[stdout]
 ```
 
 | スクリプト       | 入力                | 出力                      | 依存           |
@@ -187,21 +190,11 @@ _ambiguous_width = _load_ambiguous_width_from_profile()
 
 ## データフロー概要
 
-```
-入力テキスト
-    │
-    ▼
-split_grapheme_clusters()   — 視覚的単位への分割
-    │
-    ▼  (クラスタのリスト)
-grapheme_width()            — クラスタごとの EAW 参照
-    │
-    ▼  (整数幅)
-pad_to_width()              — 列幅までスペースパディング
-    │
-    ▼  (パディング済みセル文字列)
-render_aa_table()           — 枠線文字の組み立て
-    │
-    ▼
-stdout
+```mermaid
+flowchart TD
+    A[入力テキスト] --> B["split_grapheme_clusters()<br/>— 視覚的単位への分割"]
+    B -->|クラスタのリスト| C["grapheme_width()<br/>— クラスタごとの EAW 参照"]
+    C -->|整数幅| D["pad_to_width()<br/>— 列幅までスペースパディング"]
+    D -->|パディング済みセル文字列| E["render_aa_table()<br/>— 枠線文字の組み立て"]
+    E --> F[stdout]
 ```
