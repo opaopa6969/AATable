@@ -14,164 +14,22 @@ Usage:
 import sys
 import csv
 import io
-import json
-import os
-import unicodedata
 import argparse
 from typing import List, Optional
 
+# Import shared width utilities (grapheme-cluster-aware East Asian Width)
+from _aawidth import (
+    display_width,
+    grapheme_width,
+    split_grapheme_clusters,
+    load_ambiguous_width_from_profile,
+    set_ambiguous_width,
+    get_ambiguous_width,
+)
+import _aawidth as _aawidth_mod
 
-# ─────────────────────────────────────────────
-# Grapheme cluster segmentation
-# ─────────────────────────────────────────────
-
-ZWJ = '\u200d'
-VS15 = '\ufe0e'
-VS16 = '\ufe0f'
-
-
-def _is_regional_indicator(cp: int) -> bool:
-    return 0x1F1E6 <= cp <= 0x1F1FF
-
-
-def _is_emoji_modifier(cp: int) -> bool:
-    return 0x1F3FB <= cp <= 0x1F3FF
-
-
-def _is_emoji_base(cp: int) -> bool:
-    """Rough check: is this codepoint likely an emoji that can start a ZWJ/modifier sequence?"""
-    return (
-        0x1F600 <= cp <= 0x1F64F  # emoticons
-        or 0x1F900 <= cp <= 0x1F9FF  # supplemental symbols
-        or 0x1FA00 <= cp <= 0x1FA6F  # chess symbols
-        or 0x1FA70 <= cp <= 0x1FAFF  # symbols extended-A
-        or 0x2600 <= cp <= 0x27BF  # misc symbols, dingbats
-        or 0x1F300 <= cp <= 0x1F5FF  # misc symbols & pictographs
-        or 0x1F680 <= cp <= 0x1F6FF  # transport & map
-        or 0x1F1E0 <= cp <= 0x1F1FF  # regional indicators
-        or cp in (0x2640, 0x2642, 0x2695, 0x2696, 0x2708, 0x2764)  # common joiners
-    )
-
-
-def split_grapheme_clusters(text: str) -> List[str]:
-    """Split text into grapheme clusters, handling ZWJ sequences and regional indicators.
-
-    Not a full UAX #29 implementation, but covers the main emoji cases that
-    cause width miscalculation:
-      - ZWJ sequences:  👨‍👩‍👧  (man + ZWJ + woman + ZWJ + girl)
-      - Regional pairs:  🇯🇵  (J + P regional indicators)
-      - Modifier sequences:  👋🏽  (hand + skin tone)
-      - Variation selectors:  ☺️  (base + VS16)
-    """
-    clusters: List[str] = []
-    codepoints = [ord(ch) for ch in text]
-    i = 0
-    n = len(codepoints)
-
-    while i < n:
-        cp = codepoints[i]
-        start = i
-        i += 1
-
-        # Regional indicator pair → single cluster
-        if _is_regional_indicator(cp) and i < n and _is_regional_indicator(codepoints[i]):
-            i += 1
-            clusters.append(text[start:i])
-            continue
-
-        # Emoji / ZWJ sequence: consume ZWJ chains, modifiers, variation selectors
-        if _is_emoji_base(cp):
-            while i < n:
-                nxt = codepoints[i]
-                if nxt == ord(ZWJ) and i + 1 < n:
-                    i += 2  # skip ZWJ + next codepoint
-                elif nxt == ord(VS15) or nxt == ord(VS16):
-                    i += 1
-                elif _is_emoji_modifier(nxt):
-                    i += 1
-                elif unicodedata.category(chr(nxt)) in ('Mn', 'Me'):
-                    i += 1
-                else:
-                    break
-            clusters.append(text[start:i])
-            continue
-
-        # Regular character: consume following combining marks and variation selectors
-        while i < n:
-            nxt = codepoints[i]
-            cat = unicodedata.category(chr(nxt))
-            if cat in ('Mn', 'Me') or nxt == ord(VS15) or nxt == ord(VS16):
-                i += 1
-            else:
-                break
-        clusters.append(text[start:i])
-
-    return clusters
-
-
-# ─────────────────────────────────────────────
-# Display width calculation (East Asian Width)
-# ─────────────────────────────────────────────
-
-# Default: 1 for Windows Terminal / WSL2 / most modern terminals.
-# macOS Terminal.app uses 2. Override with --ambiguous-width 2.
-# Auto-detected from ~/.aatable_profile.json if available.
-_PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
-
-
-def _load_ambiguous_width_from_profile() -> int:
-    """Load ambiguous_width from aacalibrate profile if available."""
-    try:
-        with open(_PROFILE_PATH, 'r', encoding='utf-8') as f:
-            profile = json.load(f)
-            return profile.get('ambiguous_width', 1)
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        return 1
-
-
-_ambiguous_width = _load_ambiguous_width_from_profile()
-
-
-def _single_char_width(ch: str) -> int:
-    """Width of a single codepoint (internal helper)."""
-    eaw = unicodedata.east_asian_width(ch)
-    if eaw in ('W', 'F'):
-        return 2
-    if eaw == 'A':
-        return _ambiguous_width
-    return 1
-
-
-def grapheme_width(cluster: str) -> int:
-    """Return the display width of a grapheme cluster.
-
-    A grapheme cluster that contains ZWJ or regional indicators is
-    rendered as a single glyph of width 2 by modern terminals.
-    """
-    if len(cluster) == 1:
-        return _single_char_width(cluster)
-
-    codepoints = [ord(ch) for ch in cluster]
-
-    # ZWJ sequence → single emoji glyph → width 2
-    if ord(ZWJ) in codepoints:
-        return 2
-
-    # Regional indicator pair → single flag emoji → width 2
-    if len(codepoints) >= 2 and _is_regional_indicator(codepoints[0]):
-        return 2
-
-    # Emoji + modifier (skin tone) → width 2
-    if _is_emoji_base(codepoints[0]):
-        return 2
-
-    # Base char + combining marks → width of base
-    return _single_char_width(cluster[0])
-
-
-def display_width(text: str) -> int:
-    """Return the display width of a string in monospace columns."""
-    return sum(grapheme_width(cluster) for cluster in split_grapheme_clusters(text))
+# Initialise from calibration profile on import
+_aawidth_mod.set_ambiguous_width(_aawidth_mod.load_ambiguous_width_from_profile())
 
 
 def pad_to_width(text: str, target_width: int, align: str = 'left') -> str:
@@ -196,10 +54,82 @@ def pad_to_width(text: str, target_width: int, align: str = 'left') -> str:
 # Markdown table parsing
 # ─────────────────────────────────────────────
 
+def _split_md_row(stripped: str) -> List[str]:
+    """Split a Markdown table row on unescaped pipes outside code spans.
+
+    Handles:
+      - ``\\|`` — escaped pipe treated as literal '|' inside a cell
+      - `` `...` `` — code span: pipes inside backtick spans are not delimiters
+    """
+    cells: List[str] = []
+    current: List[str] = []
+    i = 0
+    n = len(stripped)
+
+    while i < n:
+        ch = stripped[i]
+
+        # Backslash escape: \| → literal '|', any other \X → keep both chars
+        if ch == '\\' and i + 1 < n:
+            next_ch = stripped[i + 1]
+            if next_ch == '|':
+                current.append('|')
+                i += 2
+                continue
+            else:
+                current.append(ch)
+                current.append(next_ch)
+                i += 2
+                continue
+
+        # Code span: consume from opening backtick(s) to matching closing backtick(s)
+        if ch == '`':
+            # Count opening backticks
+            tick_start = i
+            while i < n and stripped[i] == '`':
+                i += 1
+            fence = stripped[tick_start:i]
+            fence_len = len(fence)
+            code_start = i
+            # Search for matching closing fence (same number of backticks)
+            closed = False
+            while i < n:
+                if stripped[i] == '`':
+                    close_start = i
+                    while i < n and stripped[i] == '`':
+                        i += 1
+                    if i - close_start == fence_len:
+                        # Found matching close
+                        current.append(stripped[tick_start:i])
+                        closed = True
+                        break
+                    # Wrong number of backticks — continue searching
+                else:
+                    i += 1
+            if not closed:
+                # Unclosed code span: treat backticks as literal characters
+                current.append(stripped[tick_start:i])
+            continue
+
+        # Unescaped pipe: cell delimiter
+        if ch == '|':
+            cells.append(''.join(current))
+            current = []
+            i += 1
+            continue
+
+        current.append(ch)
+        i += 1
+
+    cells.append(''.join(current))
+    return cells
+
+
 def parse_md_table(lines: List[str]) -> Optional[List[List[str]]]:
     """Parse Markdown table lines into a list of rows (list of cell strings).
 
     Skips the separator row (|---|---|).
+    Correctly handles escaped pipes (\\|) and pipes inside code spans (`a|b`).
     Returns None if input is not a valid Markdown table.
     """
     rows = []
@@ -215,7 +145,7 @@ def parse_md_table(lines: List[str]) -> Optional[List[List[str]]]:
         if all(ch in '-: |' for ch in content):
             continue
 
-        cells = [cell.strip() for cell in stripped.split('|')]
+        cells = [cell.strip() for cell in _split_md_row(stripped)]
         # Remove empty first/last elements from leading/trailing |
         if cells and cells[0] == '':
             cells = cells[1:]
@@ -413,8 +343,8 @@ def main():
         help='Do not treat first row as header',
     )
     parser.add_argument(
-        '--ambiguous-width', '-a', type=int, choices=[1, 2], default=1,
-        help='Display width for Ambiguous characters (default: 1 for Windows/WSL, use 2 for macOS Terminal)',
+        '--ambiguous-width', '-a', type=int, choices=[1, 2], default=None,
+        help='Display width for Ambiguous characters (default: from ~/.aatable_profile.json, or 1 for Windows/WSL; use 2 for macOS Terminal)',
     )
     parser.add_argument(
         '--align', '-A', choices=['left', 'right', 'center'], default='left',
@@ -427,9 +357,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Override Ambiguous width
-    global _ambiguous_width
-    _ambiguous_width = args.ambiguous_width
+    # Override Ambiguous width only when explicitly specified via -a/--ambiguous-width;
+    # otherwise keep the value already loaded from the calibration profile.
+    if args.ambiguous_width is not None:
+        _aawidth_mod.set_ambiguous_width(args.ambiguous_width)
 
     if args.demo:
         demo_rows = [

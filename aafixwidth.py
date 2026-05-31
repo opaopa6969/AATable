@@ -13,52 +13,14 @@ Usage:
 
 import sys
 import re
-import unicodedata
 from typing import List
 
+# Import shared width utilities (grapheme-cluster-aware East Asian Width)
+from _aawidth import display_width, set_ambiguous_width, load_ambiguous_width_from_profile
+import _aawidth as _aawidth_mod
 
-# ─────────────────────────────────────────────
-# Width calculation (same logic as aatable.py)
-# ─────────────────────────────────────────────
-
-_ambiguous_width = 1
-
-ZWJ = '\u200d'
-
-
-def _is_regional_indicator(cp: int) -> bool:
-    return 0x1F1E6 <= cp <= 0x1F1FF
-
-
-def _is_emoji_modifier(cp: int) -> bool:
-    return 0x1F3FB <= cp <= 0x1F3FF
-
-
-def _is_emoji_base(cp: int) -> bool:
-    return (
-        0x1F600 <= cp <= 0x1F64F or 0x1F900 <= cp <= 0x1F9FF
-        or 0x1FA00 <= cp <= 0x1FA6F or 0x1FA70 <= cp <= 0x1FAFF
-        or 0x2600 <= cp <= 0x27BF or 0x1F300 <= cp <= 0x1F5FF
-        or 0x1F680 <= cp <= 0x1F6FF or 0x1F1E0 <= cp <= 0x1F1FF
-    )
-
-
-def char_display_width(ch: str) -> int:
-    if ch in ('\u200d', '\u200b', '\ufe0f', '\ufe0e'):
-        return 0
-    cat = unicodedata.category(ch)
-    if cat in ('Mn', 'Me', 'Cf'):
-        return 0
-    eaw = unicodedata.east_asian_width(ch)
-    if eaw in ('W', 'F'):
-        return 2
-    if eaw == 'A':
-        return _ambiguous_width
-    return 1
-
-
-def display_width(text: str) -> int:
-    return sum(char_display_width(ch) for ch in text)
+# Initialise from calibration profile on import
+_aawidth_mod.set_ambiguous_width(_aawidth_mod.load_ambiguous_width_from_profile())
 
 
 # ─────────────────────────────────────────────
@@ -212,14 +174,15 @@ def main():
         help='Input file (default: stdin)',
     )
     parser.add_argument(
-        '--ambiguous-width', '-a', type=int, choices=[1, 2], default=1,
-        help='Display width for Ambiguous characters (default: 1)',
+        '--ambiguous-width', '-a', type=int, choices=[1, 2], default=None,
+        help='Display width for Ambiguous characters (default: from ~/.aatable_profile.json, or 1 for Windows/WSL; use 2 for macOS Terminal)',
     )
 
     args = parser.parse_args()
 
-    global _ambiguous_width
-    _ambiguous_width = args.ambiguous_width
+    # Override Ambiguous width only when explicitly specified; otherwise keep profile value.
+    if args.ambiguous_width is not None:
+        _aawidth_mod.set_ambiguous_width(args.ambiguous_width)
 
     if args.file:
         with open(args.file, encoding='utf-8') as f:

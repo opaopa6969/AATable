@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import aatable
+import _aawidth as _aawidth_mod
 
 
 def test_empty_string():
@@ -52,14 +53,14 @@ def test_name():
 
 
 def test_ambiguous_width_1():
-    original = aatable._ambiguous_width
-    aatable._ambiguous_width = 1
+    original = _aawidth_mod.get_ambiguous_width()
+    _aawidth_mod.set_ambiguous_width(1)
     assert aatable.display_width("①②③") == 3
-    aatable._ambiguous_width = original
+    _aawidth_mod.set_ambiguous_width(original)
 
 
 def test_ambiguous_width_2():
-    original = aatable._ambiguous_width
-    aatable._ambiguous_width = 2
+    original = _aawidth_mod.get_ambiguous_width()
+    _aawidth_mod.set_ambiguous_width(2)
     assert aatable.display_width("①②③") == 6
-    aatable._ambiguous_width = original
+    _aawidth_mod.set_ambiguous_width(original)
