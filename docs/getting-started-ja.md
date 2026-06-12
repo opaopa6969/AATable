@@ -6,8 +6,7 @@
 
 ## 要件
 
-- Python 3.8 以上 (標準ライブラリのみ — pip インストール不要)
-  - Python 3.8 は 2024 年 10 月に EOL を迎えています。Python 3.9+ を推奨します。
+- Python 3.9 以上 (標準ライブラリのみ — pip インストール不要)
 - `mmd2ge.py` を使う場合: [Graph::Easy](https://metacpan.org/pod/Graph::Easy) Perl モジュール
 - `aacalibrate.py` を使う場合: インタラクティブな TTY (パイプ不可)
 

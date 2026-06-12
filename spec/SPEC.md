@@ -380,10 +380,6 @@ graph-easy 等の CJK 非対応ツールが生成した ASCII Art テキスト�
 1. `|` が含まれない行またはボーダー行はスキップ
 2. 各セグメントの末尾スペースを trim し `display_width - len` 分を除去
 
-#### 2.4.6 `find_boxes()` について（デッドコード）
-
-`aafixwidth.py` には完全な矩形ボックスをトレースする `find_boxes()` 関数が存在するが、現行実装では `fix_aa_widths()` から呼び出されていない。`find_column_positions()` ベースのシンプルなアプローチで十分であることが判明したため不使用となっている。将来利用を想定して保持されているが現在は到達不能コードである。
-
 ### 2.5 aacalibrate.py
 
 #### 2.5.1 概要
@@ -1567,7 +1563,6 @@ CLI ツールのためログ・監視基盤は持たない。エラー出力は 
 | v0.4.0 の Ambiguous 幅プロファイル問題 | CLI デフォルト値がプロファイルを上書きする | `--ambiguous-width 2` を明示指定（macOS ユーザー） |
 | `aafixwidth.py` の ZWJ 精度 | グラフェームクラスター分割を省略しているため、ZWJ シーケンスの幅計算が不正確になる場合がある | `aatable.py` を使用する（正規実装） |
 | Mermaid の対応範囲 | サブグラフ、classDef、click ハンドラ等の高度な機能は非対応 | 非対応機能を使わない設計にする |
-| `find_boxes()` デッドコード | `aafixwidth.py` に未使用関数が存在 | 現状のまま保持（将来利用の可能性あり） |
 | 列単位アライメント非対応 | `--align` は全列に適用される | 列単位指定が必要な場合は post-process が必要 |
 | プロファイルパスの固定 | `aatable.py` は `~/.aatable_profile.json` のみ読み込む | カスタムパスのプロファイルを使う場合は `--ambiguous-width` で上書き |
 | stdin エンコーディング | UTF-8 ロケール環境を前提 | `PYTHONIOENCODING=utf-8` を設定する |

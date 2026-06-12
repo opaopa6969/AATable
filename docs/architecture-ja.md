@@ -29,8 +29,7 @@ flowchart LR
 | `aafixwidth.py`  | ASCII Art テキスト  | 幅補正済みテキスト        | 標準ライブラリのみ |
 | `aacalibrate.py` | ターミナル (TTY 必須) | `~/.aatable_profile.json` | `tty`, `termios` |
 
-4 スクリプトすべて **Python 3.8+** が必要 (pip インストール不要)。  
-Python 3.8 は 2024 年 10 月に EOL を迎えています。Python 3.9+ を推奨します。
+4 スクリプトすべて **Python 3.9+** が必要 (pip インストール不要)。
 
 ---
 
@@ -160,13 +159,6 @@ def pad_for_grapheasy(label: str) -> str:
 3. `display_width(content) - len(content)` (全角文字の余剰分) に等しい末尾スペースをトリムする
 
 これはソースから再レンダリングするよりもシンプルで堅牢です。ソースが入手できない場合にも使えます。
-
-### `find_boxes()` — デッドコードについて
-
-`aafixwidth.py` には、`+` コーナーから完全な矩形ボックスをトレースする `find_boxes()` 関数が含まれています。  
-この関数は**現在の実装では呼ばれていません** — `fix_aa_widths()` はよりシンプルな  
-`find_column_positions()` アプローチを使用しています。`find_boxes()` は過剰設計と判断されましたが、  
-将来的な利用に備えて保存されています。現状では到達不能なコードです。
 
 ---
 

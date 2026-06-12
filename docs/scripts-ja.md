@@ -31,6 +31,7 @@ python3 aatable.py [OPTIONS] [FILE]
 | `--padding` | `-p` | 整数 | `1` | 各セルの内側に追加するスペース数 (左右それぞれ)。 |
 | `--no-header` | — | フラグ | off | 先頭行をヘッダではなくデータとして扱います。0 行目の後に区切り線を描きません。 |
 | `--ambiguous-width` | `-a` | `1` `2` | `1` (またはプロファイル) | Unicode Ambiguous 文字の表示幅。Windows Terminal / VS Code では `1`。macOS Terminal.app では `2`。`~/.aatable_profile.json` を上書きします。 |
+| `--align` | `-A` | `left` `right` `center` | `left` | セル文字の揃え。全列に適用されます。 |
 | `--demo` | — | フラグ | off | 全文字種を含むデモテーブルと 5 種類のスタイルを表示します。`FILE` とフォーマットオプションは無視されます。 |
 
 ### 終了コード
@@ -186,10 +187,6 @@ python3 aafixwidth.py [OPTIONS] [FILE]
 3. 末尾スペースをトリムする: `削除するスペース数 = display_width(content) - len(content)`
 
 ボックス構造が検出されない場合は、シンプルな行ごとのアプローチにフォールバックします。
-
-### 制限事項: find_boxes() デッドコード
-
-`aafixwidth.py` には完全な矩形ボックスをトレースする `find_boxes()` 関数が含まれています。この関数は現在の実装では**呼ばれていません** — 実際のコードパスは `find_column_positions()` を使用しています。`find_boxes()` は保存されていますが到達不能です。
 
 ### 使用例
 

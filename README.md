@@ -55,8 +55,7 @@ AATable replaces `len()` with a proper `display_width()` that accounts for:
 ## Quick Start
 
 ```bash
-# No dependencies — Python 3.8+ only
-# (Python 3.8 is EOL as of October 2024; Python 3.9+ recommended)
+# No dependencies — Python 3.9+ only (stdlib)
 git clone https://github.com/opaopa6969/AATable.git
 cd AATable
 chmod +x aatable.py aafixwidth.py mmd2ge.py aacalibrate.py

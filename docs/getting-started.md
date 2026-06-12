@@ -6,8 +6,7 @@
 
 ## Requirements
 
-- Python 3.8 or later (stdlib only — no pip install)
-  - Python 3.8 reached end-of-life in October 2024. Python 3.9+ is recommended.
+- Python 3.9 or later (stdlib only — no pip install)
 - For `mmd2ge.py`: [Graph::Easy](https://metacpan.org/pod/Graph::Easy) Perl module
 - For `aacalibrate.py`: an interactive TTY (cannot be piped)
 

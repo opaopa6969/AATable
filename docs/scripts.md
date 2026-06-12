@@ -31,6 +31,7 @@ python3 aatable.py [OPTIONS] [FILE]
 | `--padding` | `-p` | integer | `1` | Spaces added inside each cell on each side. |
 | `--no-header` | — | flag | off | Treat the first row as data, not a header. No separator line is drawn after row 0. |
 | `--ambiguous-width` | `-a` | `1` `2` | `1` (or profile) | Display width for Unicode Ambiguous characters. `1` for Windows Terminal / VS Code. `2` for macOS Terminal.app. Overrides `~/.aatable_profile.json`. |
+| `--align` | `-A` | `left` `right` `center` | `left` | Cell text alignment. Applies to all columns. |
 | `--demo` | — | flag | off | Print a demo table containing all character types, then print all five styles. Ignores `FILE` and format options. |
 
 ### Exit codes
@@ -186,10 +187,6 @@ python3 aafixwidth.py [OPTIONS] [FILE]
 3. Trims trailing spaces: `spaces_to_remove = display_width(content) - len(content)`
 
 If no box structure is detected, falls back to a simpler per-line approach.
-
-### Limitation: find_boxes() dead code
-
-`aafixwidth.py` contains a `find_boxes()` function that traces full rectangular boxes. This function is not called in the current implementation — the active code path uses `find_column_positions()` instead. `find_boxes()` is preserved but unreachable.
 
 ### Examples
 

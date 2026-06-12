@@ -28,8 +28,7 @@ flowchart LR
 | `aafixwidth.py`  | ASCII Art text      | Width-corrected text   | stdlib only      |
 | `aacalibrate.py` | Terminal (TTY only) | `~/.aatable_profile.json` | `tty`, `termios` |
 
-All four scripts require **Python 3.8+** (stdlib only, no pip install).  
-Python 3.8 reached end-of-life in October 2024; Python 3.9+ is recommended.
+All four scripts require **Python 3.9+** (stdlib only, no pip install).
 
 ---
 
@@ -155,10 +154,6 @@ For ASCII Art already rendered with wrong widths, `aafixwidth.py` uses a differe
 3. Trim trailing spaces equal to `display_width(content) - len(content)` (the "wide character surplus")
 
 This is simpler and more robust than re-rendering from source, because the source may not be available.
-
-### `find_boxes()` — dead code note
-
-`aafixwidth.py` contains a `find_boxes()` function that traces complete rectangular boxes from `+` corners. This function is **not called** in the current implementation — `fix_aa_widths()` uses the simpler `find_column_positions()` approach instead. `find_boxes()` was an earlier design that proved over-engineered for the actual use case. It is preserved for potential future use but is currently unreachable.
 
 ---
 

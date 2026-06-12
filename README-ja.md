@@ -56,8 +56,7 @@ AATable は `len()` を適切な `display_width()` に置き換えます:
 ## クイックスタート
 
 ```bash
-# 依存なし — Python 3.8+ のみ
-# (Python 3.8 は 2024 年 10 月に EOL。Python 3.9+ を推奨)
+# 依存なし — Python 3.9+ のみ (標準ライブラリ)
 git clone https://github.com/opaopa6969/AATable.git
 cd AATable
 chmod +x aatable.py aafixwidth.py mmd2ge.py aacalibrate.py
