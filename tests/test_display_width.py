@@ -64,3 +64,31 @@ def test_ambiguous_width_2():
     _aawidth_mod.set_ambiguous_width(2)
     assert aatable.display_width("①②③") == 6
     _aawidth_mod.set_ambiguous_width(original)
+
+
+def test_zero_width_space():
+    # mmd2ge inserts U+200B after wide chars so graph-easy's len()
+    # matches display width; terminals advance 0 columns for it.
+    assert aatable.display_width("入\u200b力\u200b") == 4
+
+
+def test_zero_width_space_alone():
+    assert aatable.display_width("\u200b") == 0
+
+
+def test_zero_width_joiner_alone():
+    assert aatable.display_width("\u200d") == 0
+
+
+def test_combining_dakuten_alone():
+    assert aatable.display_width("\u3099") == 0
+
+
+def test_combining_handakuten_cluster():
+    # ハ + combining handakuten renders as パ: one 2-column glyph
+    assert aatable.display_width("ハ\u309a") == 2
+
+
+def test_soft_hyphen_is_visible():
+    # U+00AD renders as a visible hyphen in terminals (width 1)
+    assert aatable.display_width("\u00ad") == 1

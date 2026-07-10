@@ -133,6 +133,19 @@ def split_grapheme_clusters(text: str) -> List[str]:
 
 def _single_char_width(ch: str) -> int:
     """Width of a single codepoint (internal helper)."""
+    cp = ord(ch)
+    cat = unicodedata.category(ch)
+    # Zero-width characters: combining marks, format characters
+    # (ZWSP/ZWJ/ZWNJ/bidi marks — but not SOFT HYPHEN, which terminals
+    # render as a visible hyphen), Hangul jamo medial vowels / final
+    # consonants (composed into the preceding syllable), and line/para
+    # separators. Terminals advance the cursor 0 columns for these.
+    if cat in ('Mn', 'Me'):
+        return 0
+    if cat == 'Cf' and cp != 0x00AD:
+        return 0
+    if 0x1160 <= cp <= 0x11FF or cp in (0x2028, 0x2029):
+        return 0
     eaw = unicodedata.east_asian_width(ch)
     if eaw in ('W', 'F'):
         return 2
