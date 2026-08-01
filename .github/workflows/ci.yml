@@ -35,7 +35,7 @@ jobs:
         if: steps.install_pytest.outputs.pytest_install_failed != 'true'
         run: |
           if python -c "import pytest" 2>/dev/null; then
-            python -m pytest --tb=short || echo "::warning::pytest run failed (no tests or test errors)"
+            python -m pytest --tb=short
           else
             echo "::warning::pytest not available, skipping tests"
           fi
