@@ -29,7 +29,7 @@ python3 aatable.py [OPTIONS] [FILE]
 | `--format` | `-f` | `auto` `md` `csv` `tsv` | `auto` | Input format. `auto` detects by content: lines starting with `\|` → Markdown; tab-separated → TSV; otherwise → CSV. |
 | `--style` | `-s` | `single` `double` `bold` `round` `ascii` | `single` | Box-drawing character set. |
 | `--padding` | `-p` | integer | `1` | Spaces added inside each cell on each side. |
-| `--no-header` | — | flag | off | Treat the first row as data, not a header. No separator line is drawn after row 0. |
+| `--no-header` | — | flag | off | Treat all rows as data, drawing separator lines between rows. |
 | `--ambiguous-width` | `-a` | `1` `2` | `1` (or profile) | Display width for Unicode Ambiguous characters. `1` for Windows Terminal / VS Code. `2` for macOS Terminal.app. Overrides `~/.aatable_profile.json`. |
 | `--align` | `-A` | `left` `right` `center` | `left` | Cell text alignment. Applies to all columns. |
 | `--demo` | — | flag | off | Print a demo table containing all character types, then print all five styles. Ignores `FILE` and format options. |
@@ -178,7 +178,7 @@ python3 aafixwidth.py [OPTIONS] [FILE]
 
 | Option | Short | Values | Default | Description |
 |--------|-------|--------|---------|-------------|
-| `--ambiguous-width` | `-a` | `1` `2` | `1` | Display width for Unicode Ambiguous characters. Match to your terminal. |
+| `--ambiguous-width` | `-a` | `1` `2` | profile or `1` | Display width for Unicode Ambiguous characters. The calibration profile is used when available. |
 
 ### How it fixes
 

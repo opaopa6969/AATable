@@ -29,8 +29,8 @@ python3 aatable.py [OPTIONS] [FILE]
 | `--format` | `-f` | `auto` `md` `csv` `tsv` | `auto` | 入力フォーマット。`auto` は内容から検出: `\|` で始まる行 → Markdown、タブ区切り → TSV、それ以外 → CSV。 |
 | `--style` | `-s` | `single` `double` `bold` `round` `ascii` | `single` | 枠線文字セット。 |
 | `--padding` | `-p` | 整数 | `1` | 各セルの内側に追加するスペース数 (左右それぞれ)。 |
-| `--no-header` | — | フラグ | off | 先頭行をヘッダではなくデータとして扱います。0 行目の後に区切り線を描きません。 |
-| `--ambiguous-width` | `-a` | `1` `2` | `1` (またはプロファイル) | Unicode Ambiguous 文字の表示幅。Windows Terminal / VS Code では `1`。macOS Terminal.app では `2`。`~/.aatable_profile.json` を上書きします。 |
+| `--no-header` | — | フラグ | off | 全行をデータとして扱い、行間に区切り線を描きます。 |
+| `--ambiguous-width` | `-a` | `1` `2` | プロファイルまたは `1` | Unicode Ambiguous 文字の表示幅。利用可能ならキャリブレーションプロファイルを使用します。 |
 | `--align` | `-A` | `left` `right` `center` | `left` | セル文字の揃え。全列に適用されます。 |
 | `--demo` | — | フラグ | off | 全文字種を含むデモテーブルと 5 種類のスタイルを表示します。`FILE` とフォーマットオプションは無視されます。 |
 

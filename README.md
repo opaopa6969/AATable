@@ -285,7 +285,7 @@ options:
   -s, --style             Box style: single|double|bold|round|ascii (default: single)
   -p, --padding           Cell padding in spaces (default: 1)
   --no-header             First row is data, not a header
-  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: from profile, or 1)
   -A, --align             Cell text alignment: left|right|center (default: left)
   --demo                  Show demo table with all character types and styles
 ```
@@ -308,7 +308,7 @@ positional arguments:
   file                    Input file (default: stdin)
 
 options:
-  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: from profile, or 1)
 ```
 
 ### aacalibrate.py

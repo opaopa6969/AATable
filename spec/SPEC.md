@@ -498,7 +498,7 @@ AATable はステートレスな Unix フィルタ群であり、実行間で状
 | デフォルトパス | `~/.aatable_profile.json` |
 | パス変更 | `aacalibrate.py -o <path>` で任意のパスに保存可能 |
 | 形式 | UTF-8 JSON |
-| 読み取り元 | `aatable.py`（モジュールロード時） |
+| 読み取り元 | `aatable.py`, `aafixwidth.py`（モジュールロード時） |
 | 更新タイミング | `aacalibrate.py` 実行時のみ |
 | 欠損時の動作 | `FileNotFoundError` を catch し、デフォルト値 1 を使用 |
 | 破損時の動作 | `json.JSONDecodeError` を catch し、デフォルト値 1 を使用 |
@@ -506,27 +506,19 @@ AATable はステートレスな Unix フィルタ群であり、実行間で状
 
 ### 3.3 プロファイル読み込みの実装
 
-`aatable.py` のモジュールレベルで以下が実行される:
+`aatable.py` と `aafixwidth.py` は、共有モジュール `_aawidth.py` のロード時にプロファイルを読み込む。
 
 ```python
 _PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
 
-def _load_ambiguous_width_from_profile() -> int:
-    try:
-        with open(_PROFILE_PATH, 'r', encoding='utf-8') as f:
-            profile = json.load(f)
-            return profile.get('ambiguous_width', 1)
-    except (FileNotFoundError, json.JSONDecodeError, KeyError):
-        return 1
-
-_ambiguous_width = _load_ambiguous_width_from_profile()
+_ambiguous_width = load_ambiguous_width_from_profile()
 ```
 
-CLI オプション `--ambiguous-width` は `main()` 内で後から上書きする:
+CLI オプション `--ambiguous-width` は明示指定時のみ `main()` 内で上書きする:
 
 ```python
-global _ambiguous_width
-_ambiguous_width = args.ambiguous_width
+if args.ambiguous_width is not None:
+    set_ambiguous_width(args.ambiguous_width)
 ```
 
 ### 3.4 プロファイル書き込みの実装
@@ -1019,39 +1011,17 @@ _ambiguous_width = _load_ambiguous_width_from_profile()
 
 優先順位（高い順）: CLI オプション > プロファイル > ハードコードデフォルト（1）
 
-ただし v0.4.0 では以下の問題がある:
-
-**既知の問題:** `argparse` の `--ambiguous-width` デフォルト値が `1` に設定されているため、CLI オプション未指定時でも `args.ambiguous_width == 1` となり、`global _ambiguous_width = args.ambiguous_width` でプロファイルの値が上書きされる。
-
-```python
-# 現行実装（v0.4.0）の問題
-parser.add_argument('--ambiguous-width', default=1, ...)
-# ...
-_ambiguous_width = args.ambiguous_width  # 常に 1 で上書きされる
-
-# 正しい実装（将来の改善案）
-parser.add_argument('--ambiguous-width', default=None, ...)
-# ...
-if args.ambiguous_width is not None:
-    _ambiguous_width = args.ambiguous_width
-```
-
-現在の回避策: `aacalibrate.py` でプロファイルを生成しても `aatable.py` では `--ambiguous-width 2` を明示指定する必要がある（macOS ユーザーの場合）。
+CLI オプションのデフォルトは `None` であり、未指定時はプロファイルの値を保持する。明示指定した場合だけプロファイルを上書きする。
 
 ### 8.3 `_ambiguous_width` グローバル変数パターン
 
-全 4 スクリプトで同様のグローバル変数パターンを採用している:
+`aatable.py` と `aafixwidth.py` は共有モジュールのグローバル値を使用する。`mmd2ge.py` は独自の既定値 1 を使用し、`aacalibrate.py` は計測結果を生成する:
 
 ```python
-_ambiguous_width = 1  # モジュールレベル（aafixwidth.py, mmd2ge.py はここで宣言）
-
-def main():
-    # ...
-    global _ambiguous_width
-    _ambiguous_width = args.ambiguous_width
+_ambiguous_width = 1  # _aawidth.py のモジュールレベル
 ```
 
-`aatable.py` のみプロファイル読み込みも行う。`aafixwidth.py` と `mmd2ge.py` はプロファイル読み込みなし（常に CLI オプションかデフォルト値）。
+`aatable.py` と `aafixwidth.py` はプロファイルを読み込む。`mmd2ge.py` はプロファイルを読み込まず、Ambiguous 幅は常に 1（CLI オプションなし）である。
 
 ### 8.4 ターミナル環境変数（診断情報）
 
@@ -1247,7 +1217,7 @@ stdin の読み込みはエンコーディング指定なし（Python のデフ�
 
 ### 11.1 現状の確認
 
-リポジトリに自動テストコード（`tests/` ディレクトリ、`pytest`、`unittest` 等）は一切存在しない。CI/CD 設定（GitHub Actions 等）も存在しない。
+`tests/` に pytest の自動テストがあり、GitHub Actions の CI で Python 3.9 / 3.11 / 3.13 を対象に実行する。
 
 ### 11.2 `--demo` による動作確認
 

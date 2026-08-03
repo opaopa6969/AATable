@@ -297,7 +297,7 @@ options:
   -s, --style             枠線スタイル: single|double|bold|round|ascii (デフォルト: single)
   -p, --padding           セル内のスペース数 (デフォルト: 1)
   --no-header             先頭行をヘッダとして扱わない
-  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: 1)
+  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: プロファイル、または 1)
   -A, --align             セル文字揃え: left|right|center (デフォルト: left)
   --demo                  全文字種・全スタイルのデモを表示
 ```
@@ -321,7 +321,7 @@ positional arguments:
   file                    入力ファイル (省略時: stdin)
 
 options:
-  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: 1)
+  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: プロファイル、または 1)
 ```
 
 ### aacalibrate.py

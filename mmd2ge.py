@@ -48,7 +48,7 @@ def pad_for_grapheasy(label: str) -> str:
     return label + '\u200b' * extra
 
 
-def parse_mermaid(lines: List[str]) -> Tuple[str, List[str]]:
+def parse_mermaid(lines: List[str]) -> Tuple[str, List[str], dict]:
     """Parse Mermaid flowchart lines into Graph::Easy lines.
 
     Returns:
