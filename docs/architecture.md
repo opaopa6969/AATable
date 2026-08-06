@@ -38,7 +38,7 @@ The fundamental problem AATable solves is that Python's `len()` counts codepoint
 
 ### `display_width(text: str) -> int`
 
-Located in `aatable.py` (canonical implementation) and duplicated with slight variation in `aafixwidth.py` and `mmd2ge.py`.
+Canonical implementation in `_aawidth.py`. `aatable.py` and `aafixwidth.py` import it (`from _aawidth import display_width`). `mmd2ge.py` keeps a small standalone duplicate (`char_display_width`) to stay self-contained.
 
 Algorithm:
 
