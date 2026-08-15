@@ -7,6 +7,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Treat zero-width characters (combining marks, format chars, Hangul jamo medial/final, line/paragraph separators) as width 0 in `display_width()` — previously they were counted as width 1.
+
 ---
 
 ## [0.4.0] - 2025-01-01

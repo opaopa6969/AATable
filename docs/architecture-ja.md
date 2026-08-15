@@ -39,7 +39,7 @@ AATable が解決する根本的な問題は、Python の `len()` がターミ�
 
 ### `display_width(text: str) -> int`
 
-`aatable.py` に正規実装があり、`aafixwidth.py` と `mmd2ge.py` に若干の変形で重複実装されています。
+正規実装は `_aawidth.py` にあります。`aatable.py` と `aafixwidth.py` は import して利用し (`from _aawidth import display_width`)、`mmd2ge.py` のみ自己完結のために簡略重複実装 (`char_display_width`) を残しています。
 
 アルゴリズム:
 

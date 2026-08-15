@@ -43,9 +43,9 @@ def get_ambiguous_width() -> int:
 # Grapheme cluster segmentation
 # ─────────────────────────────────────────────
 
-ZWJ = '‍'
-VS15 = '︎'
-VS16 = '️'
+ZWJ = '‍'   # U+200D Zero Width Joiner
+VS15 = '︎'  # U+FE0E Variation Selector-15 (text presentation)
+VS16 = '️'  # U+FE0F Variation Selector-16 (emoji presentation)
 
 
 def _is_regional_indicator(cp: int) -> bool:

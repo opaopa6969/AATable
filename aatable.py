@@ -386,7 +386,7 @@ def main():
         ]
         for name in STYLES:
             print(f'\n[{name}]')
-            print(render_aa_table(small_rows, style_name=name, padding=args.padding))
+            print(render_aa_table(small_rows, style_name=name, padding=args.padding, align=args.align))
         return
 
     # Read input
