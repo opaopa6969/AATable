@@ -12,11 +12,12 @@
 | deploy unit + run.sh | done |
 | skill (SKILL.md) | done (`docs/skills/ambiguous-calibration/SKILL.md`) |
 | README MCP 節 | done |
-| commit & push | pending |
-| volta 登録 (svc_add) | pending |
-| gateway ルート適用 | pending |
-| healthz 200 確認 | pending |
-| catalog backend ready 確認 | pending |
+| commit & push | done (branch: docs/market-research-2026-07-31) |
+| volta 登録 (svc_add) | done (confirm:true, services.json 更新済み) |
+| prod 配置 + systemd 起動 | done (git clone, systemctl --user enable --now aatable) |
+| gateway ルート適用 | done (gateway_routes_apply confirm:true, [新規] aatable.unlaxer.org -> http://192.168.1.50:9251) |
+| healthz 200 確認 | done (https://aatable.unlaxer.org/healthz → 200) |
+| catalog backend ready 確認 | done (namespace=aatable, status=ready, tools=5) |
 
 ## 実装内容
 
@@ -66,10 +67,22 @@
 
 ## 次のステップ
 
-1. commit & push
-2. `volta__svc_add(manifest)` dry-run → 確認 → `confirm: true`
-3. prod で git clone/pull + `systemctl --user enable --now aatable`
-4. `curl http://127.0.0.1:9251/healthz` が 200 になることを確認
-5. `volta__gateway_routes_diff()` → 自分の 1 件のみ → `confirm: true`
-6. `https://aatable.unlaxer.org/healthz` 200 確認
-7. `catalog__backend_status` で `aatable` namespace が `ready` 確認
+全て完了。追加作業不要。
+
+## dry-run 差分記録
+
+### svc_add dry-run
+
+```
+exists: true（既存 cli エントリを更新）
+environments.prod: { runtime: systemd, port: 9251, host: 192.168.1.50, systemd_service_name: aatable }
+mcp: { enabled: true, namespace: aatable, port: 9251, path: /mcp, min_role: VIEWER }
+```
+
+### gateway_routes_diff
+
+```
+[新規] aatable.unlaxer.org -> http://192.168.1.50:9251
+（自分の 1 件のみ。温存 6 件は既存の手動設定、変更なし）
+```
+
