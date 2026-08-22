@@ -1,0 +1,117 @@
+{
+  "repo": "AATable",
+  "surveyed_at": "2026-08-21T23:02:00Z",
+  "kind": "cli",
+  "summary": "Markdown/CSV/TSV を CJK・絵文字・Ambiguous 幅に対応した ASCII Art テーブルに変換する Python CLI ツール群。標準ライブラリのみで依存ゼロ。4 スクリプト（aatable.py / mmd2ge.py / aafixwidth.py / aacalibrate.py）で構成される Unix フィルタ。",
+  "decision": "library-serve",
+  "decision_reason": "AATable は services.json に cli として既登録だが MCP/HTTP エントリは無い。display_width() ベースの幅計算とテーブル描画は、エージェントが他サービス（DB クエリ結果・API レスポンス・ログ解析）と組み合わせて CJK 揃いの表を出す際に有用。起動 1 秒以内の軽量処理だが、_aawidth.py のプロファイル読み込みとグラフェームクラスタ分割は常駐プロセスで保持する価値があり、他の volta サービス（例: DB 統計表を吐く系）の下流として組み合わせられる。display_width 計算だけなら純粋関数だが、テーブル描画は JSON rows → AA テキストという明確な tool になる。",
+  "existing": {
+    "http_api": false,
+    "cli": true,
+    "mcp": false,
+    "healthz": false,
+    "volta_manifest": false,
+    "hosted_url": null
+  },
+  "proposed_namespace": "aatable",
+  "capabilities": [
+    {
+      "verb": "表データをASCII Artテーブルに変換する",
+      "kind": "tool",
+      "name": "render_table",
+      "io": "rows (JSON array of arrays) + {style, padding, align, header, ambiguous_width} → ASCII Art text",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "aatable.py:render_aa_table()"
+    },
+    {
+      "verb": "文字列の表示幅を計測する",
+      "kind": "tool",
+      "name": "measure_width",
+      "io": "text + {ambiguous_width} → {display_width, grapheme_clusters}",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "_aawidth.py:display_width()"
+    },
+    {
+      "verb": "MermaidフローチャートをGraph::Easy形式に変換する",
+      "kind": "tool",
+      "name": "mmd2ge",
+      "io": "Mermaid text → Graph::Easy format text",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "mmd2ge.py:parse_mermaid()"
+    },
+    {
+      "verb": "既存ASCII ArtのCJK幅ずれを修正する",
+      "kind": "tool",
+      "name": "fix_width",
+      "io": "ASCII Art text + {ambiguous_width} → corrected ASCII Art text",
+      "side_effect": "none",
+      "long_running": false,
+      "maps_to": "aafixwidth.py:fix_aa_widths()"
+    },
+    {
+      "verb": "能力の仕様",
+      "kind": "resource",
+      "name": "spec",
+      "uri": "aatable://spec"
+    },
+    {
+      "verb": "使い方",
+      "kind": "resource",
+      "name": "guide",
+      "uri": "aatable://guide"
+    },
+    {
+      "verb": "サポートする枠線スタイル一覧",
+      "kind": "resource",
+      "name": "styles",
+      "uri": "aatable://styles"
+    },
+    {
+      "verb": "Ambiguous幅の判定とターミナルキャリブレーション手順",
+      "kind": "skill",
+      "name": "ambiguous-calibration",
+      "locality": "repo"
+    }
+  ],
+  "composition_examples": [
+    "vacant__query → aatable__render_table: DB クエリ結果の JSON rows を CJK 揃いの AA テーブルにしてチャットに貼る",
+    "index__agent_status → aatable__render_table: エージェント稼働状況を表で整形して報告",
+    "municipality__lookup → aatable__render_table: 住所正規化結果を一覧表にしてレビュー"
+  ],
+  "dependencies": [
+    {
+      "repo": "Graph::Easy (CPAN)",
+      "direction": "depends_on",
+      "capability": "graph-easy --as=boxart (mmd2ge.py の出力をレイアウト)",
+      "exists_now": false,
+      "note": "外部 Perl モジュール。MCP tool の mmd2ge は Graph::Easy 形式テキストを返すだけなので、boxart 化は呼び出し側または別 tool で行う。vol­ta 上に Graph::Easy MCP サービスは無い。"
+    }
+  ],
+  "library_serve": {
+    "needed": true,
+    "new_work": [
+      "MCP サーバ実装（Streamable HTTP /mcp）",
+      "healthz エンドポイント (/healthz → 200)",
+      "PORT 環境変数対応（0.0.0.0 bind）",
+      "volta.service.json manifest 作成",
+      "systemd user unit または docker 設定"
+    ],
+    "runtime": "python",
+    "estimated_effort": "S"
+  },
+  "risks": [
+    "破壊的操作なし（純粋なテキスト変換のみ）",
+    "外部 API 課金なし（ネットワークアクセス一切なし）",
+    "graph-easy は外部 CPAN モジュールだが MCP サーバ本体には含めない（mmd2ge の出力は Graph::Easy 形式テキスト）",
+    "Ambiguous 幅はターミナル依存。MCP 経由で呼ぶエージェント側のコンテキストに応じて ambiguous_width をパラメータで渡す設計にする必要がある",
+    "aacalibrate.py はインタラクティブ TTY が必須のため MCP tool には含めない（スキルとして手順を配る）"
+  ],
+  "open_questions": [
+    "display_width のみを独立 tool にするか、render_table に統合するか（単独でも他サービスから再利用されそうなら分ける）",
+    "ambiguous_width のデフォルトを 1（Windows 系）にするか 2（macOS 系）にするか、それとも必須パラメータにするか",
+    "services.json の既存 aatable エントリ（cli, host/port なし）を更新して MCP 対応にするか、別 env として追加するか"
+  ]
+}

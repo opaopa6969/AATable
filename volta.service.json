@@ -1,0 +1,25 @@
+{
+  "id": "aatable",
+  "name": "AATable MCP",
+  "description": "Markdown/CSV/TSV を CJK・絵文字対応の ASCII Art テーブルに変換する MCP サーバ",
+  "type": "python",
+  "hostname": "aatable.unlaxer.org",
+  "port": 9251,
+  "host": "192.168.1.50",
+  "runtime": "systemd",
+  "exec_start": "/home/opa/aatable/run.sh",
+  "user": "opa",
+  "auth": "minRole:VIEWER",
+  "health_check": "/healthz",
+  "tags": ["mcp", "formatting", "cjk", "ascii-art", "library", "opa"],
+  "repo_url": "https://github.com/opaopa6969/AATable",
+  "mcp": {
+    "enabled": true,
+    "port": 9251,
+    "path": "/mcp",
+    "namespace": "aatable",
+    "min_role": "VIEWER",
+    "timeoutMs": 110000,
+    "description": "CJK・絵文字対応 ASCII Art テーブル描画・幅計測・Mermaid→Graph::Easy 変換"
+  }
+}
