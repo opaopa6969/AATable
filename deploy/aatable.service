@@ -1,0 +1,14 @@
+[Unit]
+Description=aatable MCP server
+
+[Service]
+Type=simple
+WorkingDirectory=/home/opa/aatable
+Environment=PORT=9251
+EnvironmentFile=-/home/opa/volta-secrets/aatable.env
+ExecStart=/home/opa/aatable/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

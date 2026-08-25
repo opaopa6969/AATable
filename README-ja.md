@@ -13,7 +13,7 @@ Markdown / CSV / TSV の表形式データを、美しく整列した ASCII Art 
 ├────────────┼─────┼──────────┤
 │ John Smith │ 25  │ New York │
 ├────────────┼─────┼──────────┤
-│ 鈴木①      │ 42  │ 大阪     │
+│ 鈴木①     │ 42  │ 大阪     │
 ╰────────────┴─────┴──────────╯
 ```
 
@@ -297,7 +297,7 @@ options:
   -s, --style             枠線スタイル: single|double|bold|round|ascii (デフォルト: single)
   -p, --padding           セル内のスペース数 (デフォルト: 1)
   --no-header             先頭行をヘッダとして扱わない
-  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: 1)
+  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: プロファイル、または 1)
   -A, --align             セル文字揃え: left|right|center (デフォルト: left)
   --demo                  全文字種・全スタイルのデモを表示
 ```
@@ -321,7 +321,7 @@ positional arguments:
   file                    入力ファイル (省略時: stdin)
 
 options:
-  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: 1)
+  -a, --ambiguous-width   Ambiguous 文字の幅: 1|2 (デフォルト: プロファイル、または 1)
 ```
 
 ### aacalibrate.py
@@ -335,6 +335,40 @@ options:
   --json                  プロファイル JSON を stdout に出力
   --quiet                 進捗出力を抑制
 ```
+
+---
+
+## MCP (Model Context Protocol)
+
+AATable は MCP サーバ（namespace: `aatable`）として volta MCP ファサードに参加しています。
+
+### Tools
+
+| Tool | 説明 |
+|------|------|
+| `render_table` | JSON rows を CJK 揃いの ASCII Art テーブルに変換 |
+| `measure_width` | 表示幅と grapheme クラスタ数を計測 |
+| `mmd2ge` | Mermaid フローチャートを Graph::Easy 形式に変換 |
+| `fix_width` | 既存 AA の CJK 幅ずれを修正 |
+| `list_styles` | サポートする枠線スタイル一覧 |
+
+### Resources
+
+- `aatable://spec` — 能力一覧（JSON）
+- `aatable://guide` — 使い方ガイド（Markdown）
+- `aatable://styles` — スタイル一覧（JSON）
+
+### MCP サーバの起動
+
+```bash
+PORT=9251 python3 mcp/server.py
+```
+
+- Streamable HTTP `/mcp`、ヘルスチェック `/healthz`
+- `0.0.0.0:PORT` で bind（既定 9251）
+- 全 tool は純粋関数（副作用なし）
+
+詳細は `docs/mcp/DESIGN.md` および `aatable://spec` を参照。
 
 ---
 

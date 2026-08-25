@@ -12,7 +12,7 @@ Convert tabular data (Markdown / CSV / TSV) to beautifully aligned ASCII Art tab
 ├────────────┼─────┼──────────┤
 │ John Smith │ 25  │ New York │
 ├────────────┼─────┼──────────┤
-│ 鈴木①      │ 42  │ 大阪     │
+│ 鈴木①     │ 42  │ 大阪     │
 ╰────────────┴─────┴──────────╯
 ```
 
@@ -285,7 +285,7 @@ options:
   -s, --style             Box style: single|double|bold|round|ascii (default: single)
   -p, --padding           Cell padding in spaces (default: 1)
   --no-header             First row is data, not a header
-  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: from profile, or 1)
   -A, --align             Cell text alignment: left|right|center (default: left)
   --demo                  Show demo table with all character types and styles
 ```
@@ -308,7 +308,7 @@ positional arguments:
   file                    Input file (default: stdin)
 
 options:
-  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: 1)
+  -a, --ambiguous-width   Ambiguous character width: 1|2 (default: from profile, or 1)
 ```
 
 ### aacalibrate.py
@@ -322,6 +322,40 @@ options:
   --json                  Write profile JSON to stdout
   --quiet                 Suppress progress output
 ```
+
+---
+
+## MCP (Model Context Protocol)
+
+AATable is available as an MCP server (namespace: `aatable`) on the volta MCP facade.
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `render_table` | Convert JSON rows to CJK-aligned ASCII Art table |
+| `measure_width` | Measure display width and grapheme cluster count |
+| `mmd2ge` | Convert Mermaid flowchart to Graph::Easy format |
+| `fix_width` | Fix CJK width issues in existing ASCII Art |
+| `list_styles` | List supported box-drawing styles |
+
+### Resources
+
+- `aatable://spec` — Capability list (JSON)
+- `aatable://guide` — Usage guide (Markdown)
+- `aatable://styles` — Style list (JSON)
+
+### Running the MCP server
+
+```bash
+PORT=9251 python3 mcp/server.py
+```
+
+- Streamable HTTP at `/mcp`, health check at `/healthz`
+- Binds `0.0.0.0:PORT` (default 9251)
+- All tools are pure functions (no side effects)
+
+See `docs/mcp/DESIGN.md` for full design and `aatable://spec` for the capability list.
 
 ---
 
