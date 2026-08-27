@@ -506,12 +506,14 @@ AATable はステートレスな Unix フィルタ群であり、実行間で状
 
 ### 3.3 プロファイル読み込みの実装
 
-`aatable.py` と `aafixwidth.py` は、共有モジュール `_aawidth.py` のロード時にプロファイルを読み込む。
+`aatable.py` と `aafixwidth.py` は、各モジュールのロード時に共有モジュール `_aawidth.py` の関数を呼び出してプロファイルを読み込む。
 
 ```python
 _PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
 
-_ambiguous_width = load_ambiguous_width_from_profile()
+_aawidth_mod.set_ambiguous_width(
+    _aawidth_mod.load_ambiguous_width_from_profile()
+)
 ```
 
 CLI オプション `--ambiguous-width` は明示指定時のみ `main()` 内で上書きする:
@@ -612,9 +614,9 @@ flowchart TD
 
 ### 5.1 `display_width(text: str) -> int`
 
-CJK・絵文字対応の「表示幅」計算関数。Python の `len()` に代わる核心的ロジック。`aatable.py` に正規実装があり、`aafixwidth.py` と `mmd2ge.py` に簡略版が存在する。
+CJK・絵文字対応の「表示幅」計算関数。Python の `len()` に代わる核心的ロジック。正規実装は `_aawidth.py` にあり、`aatable.py` と `aafixwidth.py` はそこから `display_width()` をインポートして使用する。`mmd2ge.py` のみ、自己完結のためコードポイント単位の簡略実装 `char_display_width()` を残している。
 
-**アルゴリズム（aatable.py 版）:**
+**アルゴリズム（`_aawidth.py` の正規実装）:**
 
 ```mermaid
 flowchart LR
@@ -997,7 +999,9 @@ Ambiguous width: 2
 
 ```python
 _PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
-_ambiguous_width = _load_ambiguous_width_from_profile()
+_aawidth_mod.set_ambiguous_width(
+    _aawidth_mod.load_ambiguous_width_from_profile()
+)
 ```
 
 | 状況 | 動作 |
@@ -1166,7 +1170,7 @@ Unicode TR11（East Asian Width）の Ambiguous カテゴリ文字は「ター�
 | 異体字セレクタ付き | `☺️` | 2 | 2 | VS16 吸収 |
 | テキスト異体字 | `☺︎` | 2 | 1 | VS15 → テキスト扱い |
 
-`aatable.py` はグラフェームクラスター分割を実装しているが、`aafixwidth.py` と `mmd2ge.py` はコードポイント単位の簡略実装を使用しているため、ZWJ シーケンス等の精度がやや低い。
+`aatable.py` と `aafixwidth.py` は共有モジュール `_aawidth.py` のグラフェームクラスター対応 `display_width()` を使用する。`mmd2ge.py` のみコードポイント単位の簡略実装 `char_display_width()` を使用するため、ZWJ シーケンス等の精度がやや低い。
 
 ### 10.4 パフォーマンス特性
 
@@ -1511,7 +1515,7 @@ cp /path/to/AATable/aatable.py ~/bin/aatable
 | 課題 | 対応内容 |
 |------|---------|
 | パッケージ構造 | `src/aatable/__init__.py` 等を整備 |
-| 共通モジュール化 | `display_width()` 等が 3 スクリプトに重複。共通モジュール `aatable/core.py` に切り出す |
+| パッケージ内への共通ロジック移行 | `_aawidth.py` の共有ロジックを `aatable/core.py` に移す |
 | エントリポイント | `pyproject.toml` に `[project.scripts]` を定義 |
 | テスト追加 | `pytest` + CI 整備 |
 | バージョン管理 | `pyproject.toml` での semver 管理 |
@@ -1531,7 +1535,7 @@ CLI ツールのためログ・監視基盤は持たない。エラー出力は 
 |------|------|--------|
 | Windows ネイティブで aacalibrate 非対応 | `tty` / `termios` モジュールが存在しない | WSL を使用する、または `--ambiguous-width` を手動指定 |
 | v0.4.0 の Ambiguous 幅プロファイル問題 | CLI デフォルト値がプロファイルを上書きする | `--ambiguous-width 2` を明示指定（macOS ユーザー） |
-| `aafixwidth.py` の ZWJ 精度 | グラフェームクラスター分割を省略しているため、ZWJ シーケンスの幅計算が不正確になる場合がある | `aatable.py` を使用する（正規実装） |
+| `mmd2ge.py` の ZWJ 精度 | `char_display_width()` がコードポイント単位のため、ZWJ シーケンスの幅計算が不正確になる場合がある | 複合絵文字を避ける |
 | Mermaid の対応範囲 | サブグラフ、classDef、click ハンドラ等の高度な機能は非対応 | 非対応機能を使わない設計にする |
 | 列単位アライメント非対応 | `--align` は全列に適用される | 列単位指定が必要な場合は post-process が必要 |
 | プロファイルパスの固定 | `aatable.py` は `~/.aatable_profile.json` のみ読み込む | カスタムパスのプロファイルを使う場合は `--ambiguous-width` で上書き |
@@ -1683,7 +1687,7 @@ flowchart TD
 sequenceDiagram
     actor User
     participant main as main()
-    participant profile as _load_ambiguous_width<br/>_from_profile()
+    participant profile as load_ambiguous_width<br/>_from_profile()
     participant parse as parse_auto()<br/>/ parse_md_table()<br/>/ parse_csv()
     participant render as render_aa_table()
     participant pad as pad_to_width()
@@ -1731,7 +1735,7 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> ModuleLoad : python3 aatable.py 起動
 
-    ModuleLoad --> TryOpenProfile : _load_ambiguous_width_from_profile() 呼び出し
+    ModuleLoad --> TryOpenProfile : load_ambiguous_width_from_profile() 呼び出し
 
     TryOpenProfile --> ProfileFound : ファイルが存在する
     TryOpenProfile --> ProfileMissing : FileNotFoundError
