@@ -194,13 +194,18 @@ def parse_csv(lines: List[str], delimiter: str = ',') -> Optional[List[List[str]
     """Parse CSV/TSV lines into rows.
 
     Args:
-        lines: Input lines.
+        lines: Input lines. Each element is treated as one row; elements may
+            or may not include a trailing newline (both ``['a,b\\n', '1,2\\n']``
+            and ``['a,b', '1,2']`` produce the same result).
         delimiter: Field delimiter (',' for CSV, '\\t' for TSV).
 
     Returns:
         List of rows, or None if empty.
     """
-    text = ''.join(lines)
+    # Join with newlines so row boundaries are preserved whether or not
+    # each element already has a trailing newline. Using '' would silently
+    # merge separate rows when elements lack newlines.
+    text = '\n'.join(lines)
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
     rows = [row for row in reader if any(cell.strip() for cell in row)]
     return rows if rows else None
