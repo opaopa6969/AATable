@@ -51,3 +51,12 @@ def test_data_row_of_dashes_colons_not_dropped():
 def test_separator_only_single_column():
     # A lone separator-like line with no header yields no table.
     assert aatable.parse_md_table(["|---|"]) is None
+
+
+def test_escaped_pipe_in_cell_is_literal():
+    # GFM: `\|` inside a cell is a literal '|', not a cell delimiter.
+    # Without this, a cell containing a pipe silently splits into two cells.
+    lines = ["| a | b |", "|---|---|", r"| a\|b | c |"]
+    result = aatable.parse_md_table(lines)
+    assert result is not None
+    assert result[1] == ["a|b", "c"]
