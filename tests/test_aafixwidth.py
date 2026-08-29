@@ -36,3 +36,13 @@ def test_pure_ascii_unchanged():
     aa = '+-----+\n| abc |\n+-----+'
     out = aafixwidth.fix_aa_widths(aa)
     assert out == aa
+
+
+def test_multicol_cjk_overflow_aligns():
+    # Multi-column box: when CJK content overflows a single cell in a
+    # multi-column layout, every line's display width must still match
+    # (border extended, other cells unchanged).
+    aa = '+---+---+\n| あ | B |\n+---+---+'
+    out = aafixwidth.fix_aa_widths(aa)
+    widths = _dw_each(out)
+    assert len(set(widths)) == 1, f'multi-col widths differ: {widths}'
