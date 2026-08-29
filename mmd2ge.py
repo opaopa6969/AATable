@@ -14,38 +14,32 @@ Usage:
 
 import sys
 import re
-import unicodedata
+import argparse
 from typing import List, Tuple, Optional
+
+# Import shared width utilities (grapheme-cluster-aware East Asian Width)
+from _aawidth import display_width, set_ambiguous_width, load_ambiguous_width_from_profile
+import _aawidth as _aawidth_mod
+
+# Initialise from calibration profile on import
+_aawidth_mod.set_ambiguous_width(_aawidth_mod.load_ambiguous_width_from_profile())
 
 
 # ─────────────────────────────────────────────
 # CJK width padding
 # ─────────────────────────────────────────────
 
-_ambiguous_width = 1
-
-def char_display_width(ch: str) -> int:
-    eaw = unicodedata.east_asian_width(ch)
-    if eaw in ('W', 'F'):
-        return 2
-    if eaw == 'A':
-        return _ambiguous_width
-    return 1
-
-
 def pad_for_grapheasy(label: str) -> str:
     """Pad a label so that len() equals display_width().
 
-    graph-easy uses len() to determine box width, but CJK characters
-    are 2-wide in terminals. For each wide character, append a
-    zero-width space (U+200B) so len() matches display width.
+    graph-easy uses len() to determine box width, but CJK (and Ambiguous
+    when width=2) characters are wider in terminals. For each extra column
+    a character occupies, append a zero-width space (U+200B) so len()
+    matches display width. Uses the shared _aawidth.display_width which
+    honours the Ambiguous width setting from profile / CLI.
     """
-    extra = 0
-    for ch in label:
-        w = char_display_width(ch)
-        if w == 2:
-            extra += 1
-    return label + '\u200b' * extra
+    extra = display_width(label) - len(label)
+    return label + '\u200b' * max(0, extra)
 
 
 def parse_mermaid(lines: List[str]) -> Tuple[str, List[str], dict]:
@@ -231,8 +225,26 @@ def parse_node_def(stmt: str, node_labels: dict) -> Optional[str]:
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] != '-':
-        with open(sys.argv[1], encoding='utf-8') as f:
+    parser = argparse.ArgumentParser(
+        description='Convert Mermaid flowchart syntax to Graph::Easy input format.',
+    )
+    parser.add_argument(
+        'file', nargs='?', default=None,
+        help='Input file (default: stdin)',
+    )
+    parser.add_argument(
+        '--ambiguous-width', '-a', type=int, choices=[1, 2], default=None,
+        help='Display width for Ambiguous characters (default: from ~/.aatable_profile.json, or 1 for Windows/WSL; use 2 for macOS Terminal)',
+    )
+
+    args = parser.parse_args()
+
+    # Override Ambiguous width only when explicitly specified; otherwise keep profile value.
+    if args.ambiguous_width is not None:
+        _aawidth_mod.set_ambiguous_width(args.ambiguous_width)
+
+    if args.file:
+        with open(args.file, encoding='utf-8') as f:
             lines = f.readlines()
     else:
         if sys.stdin.isatty():
