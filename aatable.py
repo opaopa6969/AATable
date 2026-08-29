@@ -210,13 +210,15 @@ def parse_auto(lines: List[str]) -> Optional[List[List[str]]]:
     """Auto-detect format (Markdown, TSV, or CSV) and parse.
 
     Detection order:
-      1. If any line starts with '|' → Markdown
+      1. If every non-empty line starts with '|' → Markdown
+         (Markdown tables require all rows to begin with '|'; a CSV whose
+         cell value happens to start with '|' must not be misdetected.)
       2. If any line contains tab → TSV
       3. Otherwise → CSV
     """
-    for line in lines:
-        if line.strip().startswith('|'):
-            return parse_md_table(lines)
+    non_empty = [ln.strip() for ln in lines if ln.strip()]
+    if non_empty and all(s.startswith('|') for s in non_empty):
+        return parse_md_table(lines)
 
     for line in lines:
         if '\t' in line:

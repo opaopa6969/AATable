@@ -112,7 +112,7 @@ Python 標準の `len()` は文字コードポイント数を返すが、等幅�
 
 | 形式 | 自動検出条件 |
 |------|------------|
-| Markdown | 非空行の中に `\|` で始まる行が存在する |
+| Markdown | **すべての**非空行が `\|` で始まる |
 | TSV | タブ文字を含む行が存在する（Markdown 優先） |
 | CSV | 上記に該当しない場合 |
 
@@ -122,9 +122,11 @@ Python 標準の `len()` は文字コードポイント数を返すが、等幅�
 
 ```python
 # parse_auto() の処理フロー
-for line in lines:
-    if line.strip().startswith('|'):
-        return parse_md_table(lines)  # Markdown 優先
+# Markdown テーブルは全行が | で始まる必要があるため、
+# 1行でも | で始まらない非空行があれば Markdown とはみなさない
+non_empty = [ln.strip() for ln in lines if ln.strip()]
+if non_empty and all(s.startswith('|') for s in non_empty):
+    return parse_md_table(lines)  # Markdown 優先
 
 for line in lines:
     if '\t' in line:
