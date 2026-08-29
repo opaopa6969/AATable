@@ -125,14 +125,41 @@ def _split_md_row(stripped: str) -> List[str]:
     return cells
 
 
+def _is_md_separator_row(stripped: str) -> bool:
+    """Check if a stripped line is a GFM Markdown separator row.
+
+    GFM: separator is the row immediately after the header; each cell must
+    contain only `-`, `:` and whitespace, and include at least one `-`.
+    Cells are split on unescaped pipes ( honouring ``\\|`` and code spans )
+    so that ``|---|---|`` and ``|:--:|--:|`` are separators.
+    """
+    cells = _split_md_row(stripped)
+    # Drop empty first/last cells from leading/trailing |
+    if cells and cells[0] == '':
+        cells = cells[1:]
+    if cells and cells[-1] == '':
+        cells = cells[:-1]
+    if not cells:
+        return False
+    for cell in cells:
+        c = cell.strip()
+        if not c or not all(ch in '-:' for ch in c) or '-' not in c:
+            return False
+    return True
+
+
 def parse_md_table(lines: List[str]) -> Optional[List[List[str]]]:
     """Parse Markdown table lines into a list of rows (list of cell strings).
 
-    Skips the separator row (|---|---|).
+    Skips the separator row (|---|---|). Per GFM, only the row immediately
+    following the header row is treated as a separator; later rows that
+    happen to consist solely of ``-``/``:`` are kept as data. A separator-like
+    line appearing before any header row is dropped (no header → no table).
     Correctly handles escaped pipes (\\|) and pipes inside code spans (`a|b`).
     Returns None if input is not a valid Markdown table.
     """
     rows = []
+    separator_consumed = False
     for line in lines:
         stripped = line.strip()
         if not stripped:
@@ -140,10 +167,15 @@ def parse_md_table(lines: List[str]) -> Optional[List[List[str]]]:
         if not stripped.startswith('|'):
             continue
 
-        # Check if this is a separator row (|---|---|)
-        content = stripped.strip('|')
-        if all(ch in '-: |' for ch in content):
-            continue
+        if not rows:
+            # No header yet: a separator-like line is not a valid header, skip it.
+            if _is_md_separator_row(stripped):
+                continue
+        elif not separator_consumed:
+            # Immediately after the header: this is the only separator candidate.
+            if _is_md_separator_row(stripped):
+                separator_consumed = True
+                continue
 
         cells = [cell.strip() for cell in _split_md_row(stripped)]
         # Remove empty first/last elements from leading/trailing |
