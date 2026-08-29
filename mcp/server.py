@@ -37,6 +37,27 @@ MCP_HOST = "0.0.0.0"
 MCP_PORT = int(os.environ.get("PORT", "9251"))
 MCP_PATH = "/mcp"
 
+# Input limits to prevent unbounded memory use via crafted tool arguments
+# (MCP tools accept untyped JSON; without bounds a single request can OOM).
+MAX_PADDING = 100
+VALID_AMBIGUOUS_WIDTHS = (1, 2)
+
+
+def _check_ambiguous_width(value: int) -> int:
+    if value not in VALID_AMBIGUOUS_WIDTHS:
+        raise ValueError(
+            f"ambiguous_width must be one of {VALID_AMBIGUOUS_WIDTHS}, got {value!r}"
+        )
+    return value
+
+
+def _check_padding(value: int) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValueError(f"padding must be an int, got {type(value).__name__}")
+    if not 0 <= value <= MAX_PADDING:
+        raise ValueError(f"padding must be 0..{MAX_PADDING}, got {value}")
+    return value
+
 
 mcp = MCPServer(
     name="aatable",
@@ -70,7 +91,8 @@ def render_table(
     header: bool = True,
     ambiguous_width: int = 1,
 ) -> dict:
-    _aawidth_mod.set_ambiguous_width(ambiguous_width)
+    _aawidth_mod.set_ambiguous_width(_check_ambiguous_width(ambiguous_width))
+    _check_padding(padding)
     table = aatable.render_aa_table(
         rows,
         style_name=style,
@@ -91,7 +113,7 @@ def render_table(
     annotations=ToolAnnotations(readOnlyHint=True),
 )
 def measure_width(text: str, ambiguous_width: int = 1) -> dict:
-    _aawidth_mod.set_ambiguous_width(ambiguous_width)
+    _aawidth_mod.set_ambiguous_width(_check_ambiguous_width(ambiguous_width))
     dw = aatable.display_width(text)
     gc = len(_aawidth_mod.split_grapheme_clusters(text))
     return {"display_width": dw, "grapheme_clusters": gc}
@@ -127,7 +149,7 @@ def mmd2ge_convert(mermaid: str) -> dict:
     annotations=ToolAnnotations(readOnlyHint=True),
 )
 def fix_width(text: str, ambiguous_width: int = 1) -> dict:
-    _aawidth_mod.set_ambiguous_width(ambiguous_width)
+    _aawidth_mod.set_ambiguous_width(_check_ambiguous_width(ambiguous_width))
     fixed = aafixwidth.fix_aa_widths(text)
     return {"fixed": fixed}
 
