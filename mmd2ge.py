@@ -49,9 +49,10 @@ def parse_mermaid(lines: List[str]) -> Tuple[str, List[str], dict]:
         Tuple of (direction, list of Graph::Easy statements).
     """
     direction = 'down'  # default: TD
-    ge_lines: List[str] = []
     node_labels: dict = {}  # id -> (label, shape)
 
+    # Pre-screen statements (skip direction/comments) so we can run two passes.
+    statements: List[str] = []
     for raw_line in lines:
         line = raw_line.strip()
 
@@ -89,19 +90,77 @@ def parse_mermaid(lines: List[str]) -> Tuple[str, List[str], dict]:
             continue
 
         # Handle multiple statements on one line separated by ;
-        statements = [s.strip() for s in line.split(';') if s.strip()]
+        for stmt in line.split(';'):
+            stmt = stmt.strip()
+            if stmt:
+                statements.append(stmt)
 
-        for stmt in statements:
-            parsed = parse_edge(stmt, node_labels)
-            if parsed:
-                ge_lines.append(parsed)
-            else:
-                # Try as standalone node definition
-                node_parsed = parse_node_def(stmt, node_labels)
-                if node_parsed:
-                    ge_lines.append(node_parsed)
+    # Pass 1: collect all node definitions (including inline ones inside
+    # edge statements) so forward references resolve correctly.
+    for stmt in statements:
+        parse_edge(stmt, node_labels)
+        parse_node_def(stmt, node_labels)
+
+    # Pass 2: emit Graph::Easy lines now that node_labels is fully populated.
+    # Track which node ids are referenced by edges so standalone definitions
+    # that are already part of an edge are not duplicated as isolated nodes.
+    ge_lines: List[str] = []
+    referenced: set = set()
+    for stmt in statements:
+        parsed = parse_edge(stmt, node_labels)
+        if parsed:
+            ge_lines.append(parsed)
+            for nid in _edge_node_ids(stmt, node_labels):
+                referenced.add(nid)
+            continue
+        node_parsed = parse_node_def(stmt, node_labels)
+        if node_parsed:
+            nid = _standalone_node_id(stmt)
+            if nid is not None and nid in referenced:
+                continue
+            ge_lines.append(node_parsed)
 
     return direction, ge_lines, node_labels
+
+
+def _edge_node_ids(stmt: str, node_labels: dict) -> List[str]:
+    """Return the node ids referenced by an edge statement."""
+    ids: List[str] = []
+    for pattern, _, _ in [
+        (r'^(.+?)\s*--\s*(.+?)\s*-->\s*(.+)$', None, None),
+        (r'^(.+?)\s*-\.\s*(.+?)\s*\.->\s*(.+)$', None, None),
+        (r'^(.+?)\s*==\s*(.+?)\s*==>\s*(.+)$', None, None),
+        (r'^(.+?)\s*-->\|(.+?)\|\s*(.+)$', None, None),
+        (r'^(.+?)\s*-\.->\|(.+?)\|\s*(.+)$', None, None),
+        (r'^(.+?)\s*==>\|(.+?)\|\s*(.+)$', None, None),
+        (r'^(.+?)\s*-->\s*(.+)$', None, None),
+        (r'^(.+?)\s*-\.->\s*(.+)$', None, None),
+        (r'^(.+?)\s*==>\s*(.+)$', None, None),
+        (r'^(.+?)\s*---\s*(.+)$', None, None),
+    ]:
+        m = re.match(pattern, stmt)
+        if m:
+            groups = m.groups()
+            if len(groups) == 3:
+                ids.append(_node_id_of(groups[0]))
+                ids.append(_node_id_of(groups[2]))
+            else:
+                ids.append(_node_id_of(groups[0]))
+                ids.append(_node_id_of(groups[1]))
+            return ids
+    return []
+
+
+def _node_id_of(text: str) -> str:
+    """Extract the bare node id from a node reference like 'A[Start]' or 'A'."""
+    m = re.match(r'^(\w+)', text.strip())
+    return m.group(1) if m else text.strip()
+
+
+def _standalone_node_id(stmt: str) -> Optional[str]:
+    """Return the node id of a standalone node definition, or None."""
+    m = re.match(r'^(\w+)[\[\(\{]', stmt)
+    return m.group(1) if m else None
 
 
 def parse_node(text: str, node_labels: dict) -> Tuple[str, str, str]:

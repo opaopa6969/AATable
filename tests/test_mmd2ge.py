@@ -48,3 +48,30 @@ def test_wide_chars_always_padded():
         padded = mmd2ge.pad_for_grapheasy('漢')
         assert len(padded) == _aawidth.display_width('漢')
         assert padded.endswith('\u200b')
+
+
+def test_forward_reference_resolves_label():
+    # Issue #34: node definitions after edges (forward references) must
+    # resolve to their labels, and standalone defs must not be duplicated.
+    lines = ['graph LR', 'A --> B', 'A[Start]', 'B[End]']
+    _, ge_lines, _ = mmd2ge.parse_mermaid(lines)
+    assert any('[ Start ] --> [ End ]' in l for l in ge_lines)
+    assert not any('[ A ]' in l for l in ge_lines)
+    assert not any('[ B ]' in l for l in ge_lines)
+    assert not any(l.strip() == '[ Start ]' for l in ge_lines)
+    assert not any(l.strip() == '[ End ]' for l in ge_lines)
+
+
+def test_backward_reference_unchanged():
+    # Backward reference (definition before edge) must still work.
+    lines = ['graph LR', 'A[Start] --> B[End]']
+    _, ge_lines, _ = mmd2ge.parse_mermaid(lines)
+    assert any('[ Start ] --> [ End ]' in l for l in ge_lines)
+
+
+def test_orphan_node_still_emitted():
+    # A standalone node not referenced by any edge must still be emitted.
+    lines = ['graph TD', 'A[Start] --> B[End]', 'C[Foo]']
+    _, ge_lines, _ = mmd2ge.parse_mermaid(lines)
+    assert any('[ Start ] --> [ End ]' in l for l in ge_lines)
+    assert any(l.strip() == '[ Foo ]' for l in ge_lines)
