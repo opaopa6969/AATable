@@ -209,3 +209,108 @@ async def test_resource_guide(server):
             content = result.contents[0]
             assert "AATable" in content.text
             assert "render_table" in content.text
+
+
+@pytest.mark.asyncio
+async def test_render_table_rejects_huge_padding(server):
+    """padding=1e9 would allocate ~GB strings; must be rejected."""
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "render_table",
+                {"rows": [["a", "b"]], "padding": 1_000_000_000},
+            )
+            assert result.is_error is True
+            text = result.content[0].text if result.content else ""
+            assert "padding" in text
+
+
+@pytest.mark.asyncio
+async def test_render_table_rejects_negative_padding(server):
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "render_table",
+                {"rows": [["a", "b"]], "padding": -1},
+            )
+            assert result.is_error is True
+
+
+@pytest.mark.asyncio
+async def test_render_table_rejects_invalid_ambiguous_width(server):
+    """ambiguous_width=999 corrupts display_width globally; must be rejected."""
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "render_table",
+                {"rows": [["a", "b"]], "ambiguous_width": 999},
+            )
+            assert result.is_error is True
+            text = result.content[0].text if result.content else ""
+            assert "ambiguous_width" in text
+
+
+@pytest.mark.asyncio
+async def test_measure_width_rejects_invalid_ambiguous_width(server):
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "measure_width",
+                {"text": "abc", "ambiguous_width": 0},
+            )
+            assert result.is_error is True
+
+
+@pytest.mark.asyncio
+async def test_fix_width_rejects_invalid_ambiguous_width(server):
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "fix_width",
+                {"text": "+--+\n|a|\n+--+", "ambiguous_width": 3},
+            )
+            assert result.is_error is True
+
+
+@pytest.mark.asyncio
+async def test_render_table_accepts_boundary_padding(server):
+    """padding=0 and padding=100 are valid boundary values."""
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            for padding in (0, 100):
+                result = await session.call_tool(
+                    "render_table",
+                    {"rows": [["a", "b"]], "padding": padding},
+                )
+                assert result.is_error is False
+                text = result.content[0].text if result.content else ""
+                data = json.loads(text)
+                assert "table" in data
+
+
+@pytest.mark.asyncio
+async def test_invalid_ambiguous_width_does_not_pollute_global(server):
+    """A rejected call must not leave the module global ambiguous_width mutated."""
+    async with streamable_http_client(f"http://127.0.0.1:{server}/mcp") as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            # Set a known good value first
+            await session.call_tool(
+                "measure_width", {"text": "x", "ambiguous_width": 1}
+            )
+            # Attempt to set an invalid value (should fail)
+            bad = await session.call_tool(
+                "measure_width", {"text": "x", "ambiguous_width": 999}
+            )
+            assert bad.is_error is True
+            # Subsequent valid call must still work correctly
+            result = await session.call_tool(
+                "measure_width", {"text": "x", "ambiguous_width": 2}
+            )
+            assert result.is_error is False
