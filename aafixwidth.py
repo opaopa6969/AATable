@@ -61,7 +61,55 @@ def fix_aa_widths(text: str) -> str:
         else:
             fixed_lines.append(fix_content_line(line, column_positions))
 
+    # Step 3: If any content line is wider than the border (CJK overflow),
+    # redraw the horizontal borders so the right edge aligns with content.
+    fixed_lines = _align_borders_to_content(fixed_lines, column_positions)
+
     return '\n'.join(fixed_lines)
+
+
+def _align_borders_to_content(
+    lines: List[str], column_positions: List[int]
+) -> List[str]:
+    """Extend horizontal border lines so they are at least as wide as the
+    widest content line, keeping the right border aligned with content.
+
+    Only widens borders; never shrinks them (non-degrading)."""
+    border_indices = [
+        i for i, ln in enumerate(lines) if is_horizontal_border(ln)
+    ]
+    if not border_indices:
+        return lines
+    content_widths = [
+        display_width(lines[i])
+        for i in range(len(lines))
+        if i not in border_indices and lines[i].strip()
+    ]
+    if not content_widths:
+        return lines
+    target = max(content_widths)
+    for i in border_indices:
+        cur = display_width(lines[i])
+        if cur >= target:
+            continue
+        lines[i] = _widen_border(lines[i], target)
+    return lines
+
+
+def _widen_border(line: str, target_width: int) -> str:
+    """Widen a horizontal border line to target_width by extending the
+    last '-' run so the trailing '+' lands at target_width-1."""
+    rstripped = line.rstrip()
+    if not rstripped or '+' not in rstripped:
+        return line
+    last_plus = rstripped.rindex('+')
+    head = rstripped[:last_plus]            # e.g. '+-----'
+    tail = rstripped[last_plus:]            # '+'
+    cur = display_width(rstripped)
+    if cur >= target_width:
+        return rstripped
+    head = head + '-' * (target_width - cur)
+    return head + tail
 
 
 def find_column_positions(lines: List[str]) -> List[int]:
@@ -83,7 +131,13 @@ def is_horizontal_border(line: str) -> bool:
 
 
 def fix_content_line(line: str, column_positions: List[int]) -> str:
-    """Fix a content line ('| text | text |') to align with column positions."""
+    """Fix a content line ('| text | text |') to align with column positions.
+
+    For each cell, pad with spaces so that the display width equals the
+    expected char width derived from the border. When content is already
+    wider than the cell (CJK overflow), emit it as-is with no padding so
+    callers can detect the overflow and extend the border if needed.
+    """
     if '|' not in line:
         return line
 
@@ -99,28 +153,21 @@ def fix_content_line(line: str, column_positions: List[int]) -> str:
         content = parts[i]
         result += '|'
 
-        # Calculate how much display space the content takes
-        content_display = display_width(content)
-        content_len = len(content)
-
         # The expected char width for this cell
         if i < len(column_positions):
             expected_chars = column_positions[i] - column_positions[i - 1] - 1
         else:
-            expected_chars = content_len
+            expected_chars = len(content)
 
-        # Width difference due to wide chars
-        width_diff = content_display - content_len
-
-        # Adjust: remove extra spaces to compensate for wide chars
-        if width_diff > 0 and content.endswith(' ' * width_diff):
-            result += content[:-width_diff]
-        elif width_diff > 0:
-            # Try to trim trailing spaces
-            trimmed = content.rstrip(' ')
-            needed_padding = max(0, expected_chars - display_width(trimmed) - width_diff)
-            result += trimmed + ' ' * needed_padding
+        # Pad so display_width(content) == expected_chars. display_width
+        # already accounts for CJK double width, so no separate width_diff
+        # subtraction is needed (previous code double-subtracted it).
+        dw = display_width(content)
+        if dw <= expected_chars:
+            result += content + ' ' * (expected_chars - dw)
         else:
+            # Content wider than the cell: emit as-is (border will be
+            # extended separately to keep right border aligned).
             result += content
 
     result += '|' + parts[-1] if len(parts) > 1 else ''
