@@ -109,11 +109,10 @@ Unicode は Ambiguous 幅を「コンテキスト依存」と定義していま�
 `aatable.py` のデフォルトは `--ambiguous-width 1` です。macOS Terminal では  
 `--ambiguous-width 2` を指定するか、`aacalibrate.py` を一度実行して自動検出・保存してください。
 
-モジュールレベル変数 `_ambiguous_width` は CLI パース時に設定されます:
+`_ambiguous_width` は `ContextVar` に保存されるため、同時リクエストが互いの設定を上書きしません。CLI パース時は現在のコンテキストを設定します:
 
 ```python
-global _ambiguous_width
-_ambiguous_width = args.ambiguous_width
+set_ambiguous_width(args.ambiguous_width)
 ```
 
 ---

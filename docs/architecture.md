@@ -106,11 +106,11 @@ Affected characters include `①②③`, `αβγ`, `♠♥♦♣`, `—`, `±`, 
 
 `aatable.py` defaults to `--ambiguous-width 1`. Use `--ambiguous-width 2` for macOS Terminal, or run `aacalibrate.py` once to auto-detect and persist the setting.
 
-The `_ambiguous_width` module-level variable is set at CLI parse time:
+The `_ambiguous_width` setting is stored in a `ContextVar`, so concurrent
+requests do not overwrite one another. CLI parsing sets the current context:
 
 ```python
-global _ambiguous_width
-_ambiguous_width = args.ambiguous_width
+set_ambiguous_width(args.ambiguous_width)
 ```
 
 ---
