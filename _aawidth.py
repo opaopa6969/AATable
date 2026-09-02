@@ -8,15 +8,18 @@ ZWJ emoji and modified emoji sequences are not over-counted.
 import unicodedata
 import json
 import os
+from contextvars import ContextVar
 from typing import List
 
 # ─────────────────────────────────────────────
-# Ambiguous-width global (1 = narrow, 2 = wide)
+# Ambiguous-width context (1 = narrow, 2 = wide)
 # ─────────────────────────────────────────────
 
 _PROFILE_PATH = os.path.expanduser('~/.aatable_profile.json')
 
-_ambiguous_width: int = 1
+_ambiguous_width: ContextVar[int] = ContextVar(
+    'ambiguous_width', default=1
+)
 
 
 def load_ambiguous_width_from_profile() -> int:
@@ -30,13 +33,12 @@ def load_ambiguous_width_from_profile() -> int:
 
 
 def set_ambiguous_width(value: int) -> None:
-    """Set the module-level ambiguous width used by display_width()."""
-    global _ambiguous_width
-    _ambiguous_width = value
+    """Set the current context's ambiguous width used by display_width()."""
+    _ambiguous_width.set(value)
 
 
 def get_ambiguous_width() -> int:
-    return _ambiguous_width
+    return _ambiguous_width.get()
 
 
 # ─────────────────────────────────────────────
@@ -150,7 +152,7 @@ def _single_char_width(ch: str) -> int:
     if eaw in ('W', 'F'):
         return 2
     if eaw == 'A':
-        return _ambiguous_width
+        return _ambiguous_width.get()
     return 1
 
 
