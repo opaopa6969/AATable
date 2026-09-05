@@ -9,6 +9,7 @@ import unicodedata
 import json
 import os
 from contextvars import ContextVar
+from functools import lru_cache
 from typing import List
 
 # ─────────────────────────────────────────────
@@ -83,10 +84,17 @@ def split_grapheme_clusters(text: str) -> List[str]:
       - Modifier sequences:  👋🏽  (hand + skin tone)
       - Variation selectors:  ☺️  (base + VS16)
     """
+    n = len(text)
+    if n == 0:
+        return []
+    # Fast path: pure ASCII has no ZWJ/emoji/combining marks → one cluster
+    # per character. This is the common case for most table cells.
+    if text.isascii():
+        return list(text)
+
     clusters: List[str] = []
     codepoints = [ord(ch) for ch in text]
     i = 0
-    n = len(codepoints)
 
     while i < n:
         cp = codepoints[i]
@@ -116,11 +124,20 @@ def split_grapheme_clusters(text: str) -> List[str]:
             clusters.append(text[start:i])
             continue
 
-        # Regular character: consume following combining marks and variation selectors
+        # Regular character: consume following combining marks and variation selectors.
+        # Most text has no combining marks, so fast-skip when next codepoint is in the
+        # printable ASCII / common CJK ideograph range (no Mn/Me possible there).
         while i < n:
             nxt = codepoints[i]
-            cat = unicodedata.category(chr(nxt))
-            if cat in ('Mn', 'Me') or nxt == ord(VS15) or nxt == ord(VS16):
+            # Fast skip: characters in ranges that never have category Mn/Me and
+            # are not VS15/VS16. Covers ASCII, CJK ideographs, kana, Hangul syllables.
+            if (0x20 <= nxt < 0x7F) or (0x4E00 <= nxt <= 0x9FFF) or \
+               (0x3040 <= nxt <= 0x30FF) or (0xAC00 <= nxt <= 0xD7A3):
+                break
+            if nxt == ord(VS15) or nxt == ord(VS16):
+                i += 1
+                continue
+            if unicodedata.category(chr(nxt)) in ('Mn', 'Me'):
                 i += 1
             else:
                 break
@@ -134,8 +151,23 @@ def split_grapheme_clusters(text: str) -> List[str]:
 # ─────────────────────────────────────────────
 
 def _single_char_width(ch: str) -> int:
-    """Width of a single codepoint (internal helper)."""
+    """Width of a single codepoint (internal helper).
+
+    Cached: grapheme clusters call this once per base codepoint; the same
+    characters recur heavily across rows (e.g. CJK repeats). The cache key
+    includes _ambiguous_width so a profile switch invalidates correctly.
+    """
+    return _single_char_width_cached(ch, _ambiguous_width.get())
+
+
+@lru_cache(maxsize=4096)
+def _single_char_width_cached(ch: str, _aw: int) -> int:
+    """Width of a single codepoint (cached on (char, ambiguous_width))."""
     cp = ord(ch)
+    # Fast path: printable ASCII is always width 1 (covers most cells in
+    # mixed/ASCII-heavy tables). Skip unicodedata lookups entirely.
+    if 32 <= cp < 0x7F:
+        return 1
     cat = unicodedata.category(ch)
     # Zero-width characters: combining marks, format characters
     # (ZWSP/ZWJ/ZWNJ/bidi marks — but not SOFT HYPHEN, which terminals
@@ -152,7 +184,7 @@ def _single_char_width(ch: str) -> int:
     if eaw in ('W', 'F'):
         return 2
     if eaw == 'A':
-        return _ambiguous_width.get()
+        return _aw
     return 1
 
 
@@ -185,4 +217,10 @@ def grapheme_width(cluster: str) -> int:
 
 def display_width(text: str) -> int:
     """Return the display width of a string in monospace columns."""
+    return _display_width_cached(text, _ambiguous_width.get())
+
+
+@lru_cache(maxsize=4096)
+def _display_width_cached(text: str, _aw: int) -> int:
+    """Cached display_width. Key includes ambiguous_width for correctness."""
     return sum(grapheme_width(cluster) for cluster in split_grapheme_clusters(text))

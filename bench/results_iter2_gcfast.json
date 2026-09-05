@@ -1,0 +1,178 @@
+{
+  "dw_ascii_cell": {
+    "iters": 5000,
+    "min_us": 0.862,
+    "median_us": 1.433,
+    "mean_us": 1.804697,
+    "max_us": 150.077,
+    "stdev_us": 3.4592135701768716
+  },
+  "dw_cjk_cell": {
+    "iters": 5000,
+    "min_us": 2.284,
+    "median_us": 3.9575,
+    "mean_us": 4.8843132,
+    "max_us": 216.913,
+    "stdev_us": 5.57315139403174
+  },
+  "dw_mixed_cell": {
+    "iters": 5000,
+    "min_us": 3.817,
+    "median_us": 6.092,
+    "mean_us": 6.9870596,
+    "max_us": 165.427,
+    "stdev_us": 5.579429467919219
+  },
+  "dw_emoji_cell": {
+    "iters": 5000,
+    "min_us": 2.204,
+    "median_us": 4.689,
+    "mean_us": 4.6639494,
+    "max_us": 289.668,
+    "stdev_us": 5.01520482783432
+  },
+  "gc_ascii_cell": {
+    "iters": 5000,
+    "min_us": 0.22,
+    "median_us": 0.291,
+    "mean_us": 0.4486554,
+    "max_us": 18.507,
+    "stdev_us": 0.6704177063824062
+  },
+  "gc_cjk_cell": {
+    "iters": 5000,
+    "min_us": 2.014,
+    "median_us": 2.775,
+    "mean_us": 3.3046,
+    "max_us": 56.813,
+    "stdev_us": 1.6056382480611027
+  },
+  "gc_mixed_cell": {
+    "iters": 5000,
+    "min_us": 2.715,
+    "median_us": 4.319,
+    "mean_us": 4.4806792,
+    "max_us": 74.931,
+    "stdev_us": 2.6692694423303376
+  },
+  "gc_emoji_cell": {
+    "iters": 5000,
+    "min_us": 1.242,
+    "median_us": 1.9735,
+    "mean_us": 2.2901634,
+    "max_us": 95.623,
+    "stdev_us": 2.111871320131745
+  },
+  "render_ascii_10x4": {
+    "iters": 299,
+    "min_us": 115.608,
+    "median_us": 219.795,
+    "mean_us": 223.17157859531773,
+    "max_us": 540.5,
+    "stdev_us": 58.41408830564944
+  },
+  "render_ascii_100x6": {
+    "iters": 280,
+    "min_us": 1719.512,
+    "median_us": 3408.799,
+    "mean_us": 3424.200075,
+    "max_us": 9742.971,
+    "stdev_us": 870.8321078131901
+  },
+  "render_ascii_1000x8": {
+    "iters": 34,
+    "min_us": 28378.727,
+    "median_us": 42094.662,
+    "mean_us": 40854.575735294115,
+    "max_us": 51175.838,
+    "stdev_us": 5833.517926636428
+  },
+  "render_cjk_10x4": {
+    "iters": 299,
+    "min_us": 280.555,
+    "median_us": 446.163,
+    "mean_us": 472.4382274247492,
+    "max_us": 4626.704,
+    "stdev_us": 260.5535607469886
+  },
+  "render_cjk_100x6": {
+    "iters": 280,
+    "min_us": 3967.75,
+    "median_us": 6947.951,
+    "mean_us": 6836.369582142857,
+    "max_us": 11474.449,
+    "stdev_us": 1345.4590917520368
+  },
+  "render_cjk_1000x8": {
+    "iters": 34,
+    "min_us": 71863.809,
+    "median_us": 90560.22,
+    "mean_us": 90840.89444117647,
+    "max_us": 106843.298,
+    "stdev_us": 9821.498575079262
+  },
+  "render_mixed_10x4": {
+    "iters": 299,
+    "min_us": 149.775,
+    "median_us": 238.821,
+    "mean_us": 246.46917056856188,
+    "max_us": 1085.851,
+    "stdev_us": 87.34986696559446
+  },
+  "render_mixed_100x6": {
+    "iters": 280,
+    "min_us": 2225.045,
+    "median_us": 3894.661,
+    "mean_us": 3905.179639285714,
+    "max_us": 7345.086,
+    "stdev_us": 908.2313637521942
+  },
+  "render_mixed_1000x8": {
+    "iters": 34,
+    "min_us": 43007.249,
+    "median_us": 56680.882,
+    "mean_us": 56069.39097058823,
+    "max_us": 65379.383,
+    "stdev_us": 5349.45096268304
+  },
+  "render_emoji_10x4": {
+    "iters": 299,
+    "min_us": 149.294,
+    "median_us": 269.111,
+    "mean_us": 283.72546488294313,
+    "max_us": 937.393,
+    "stdev_us": 96.83799552668074
+  },
+  "render_emoji_100x6": {
+    "iters": 280,
+    "min_us": 2414.863,
+    "median_us": 4262.187,
+    "mean_us": 4304.8363714285715,
+    "max_us": 7977.823,
+    "stdev_us": 943.9222365285798
+  },
+  "render_emoji_1000x8": {
+    "iters": 34,
+    "min_us": 45605.612,
+    "median_us": 60965.94,
+    "mean_us": 62954.94691176471,
+    "max_us": 85227.211,
+    "stdev_us": 10394.30035478494
+  },
+  "pipe_md_100x3": {
+    "iters": 100,
+    "min_us": 1536.223,
+    "median_us": 2517.996,
+    "mean_us": 2525.4497,
+    "max_us": 4904.862,
+    "stdev_us": 453.03845903137767
+  },
+  "pipe_csv_100x5": {
+    "iters": 100,
+    "min_us": 2126.869,
+    "median_us": 3504.227,
+    "mean_us": 3565.64686,
+    "max_us": 5511.026,
+    "stdev_us": 722.3359502037735
+  }
+}
