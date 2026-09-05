@@ -1,0 +1,178 @@
+{
+  "dw_ascii_cell": {
+    "iters": 5000,
+    "min_us": 2.835,
+    "median_us": 4.75,
+    "mean_us": 5.325133,
+    "max_us": 98.867,
+    "stdev_us": 3.6291842391037785
+  },
+  "dw_cjk_cell": {
+    "iters": 5000,
+    "min_us": 2.555,
+    "median_us": 3.8425000000000002,
+    "mean_us": 4.2954498,
+    "max_us": 140.677,
+    "stdev_us": 3.8539434319506163
+  },
+  "dw_mixed_cell": {
+    "iters": 5000,
+    "min_us": 4.559,
+    "median_us": 7.815,
+    "mean_us": 9.3546586,
+    "max_us": 476.805,
+    "stdev_us": 10.740435986564155
+  },
+  "dw_emoji_cell": {
+    "iters": 5000,
+    "min_us": 2.244,
+    "median_us": 3.577,
+    "mean_us": 3.9421998,
+    "max_us": 463.148,
+    "stdev_us": 8.411698041220173
+  },
+  "gc_ascii_cell": {
+    "iters": 5000,
+    "min_us": 2.104,
+    "median_us": 3.6725000000000003,
+    "mean_us": 4.5126888,
+    "max_us": 184.846,
+    "stdev_us": 4.977623923071978
+  },
+  "gc_cjk_cell": {
+    "iters": 5000,
+    "min_us": 1.914,
+    "median_us": 3.086,
+    "mean_us": 3.41243,
+    "max_us": 164.075,
+    "stdev_us": 3.689152372476023
+  },
+  "gc_mixed_cell": {
+    "iters": 5000,
+    "min_us": 3.397,
+    "median_us": 5.181,
+    "mean_us": 5.3080616,
+    "max_us": 242.968,
+    "stdev_us": 4.781293277104614
+  },
+  "gc_emoji_cell": {
+    "iters": 5000,
+    "min_us": 1.292,
+    "median_us": 1.964,
+    "mean_us": 2.2491976,
+    "max_us": 42.253,
+    "stdev_us": 1.8307054472637503
+  },
+  "render_ascii_10x4": {
+    "iters": 299,
+    "min_us": 408.66,
+    "median_us": 632.083,
+    "mean_us": 668.6320635451505,
+    "max_us": 2167.325,
+    "stdev_us": 150.92654581667753
+  },
+  "render_ascii_100x6": {
+    "iters": 280,
+    "min_us": 5960.383,
+    "median_us": 9291.318500000001,
+    "mean_us": 9381.403828571429,
+    "max_us": 19817.053,
+    "stdev_us": 1986.16041599868
+  },
+  "render_ascii_1000x8": {
+    "iters": 34,
+    "min_us": 97173.538,
+    "median_us": 124231.9755,
+    "mean_us": 125404.52770588236,
+    "max_us": 152739.798,
+    "stdev_us": 13795.048537339855
+  },
+  "render_cjk_10x4": {
+    "iters": 299,
+    "min_us": 311.667,
+    "median_us": 534.518,
+    "mean_us": 612.9141505016722,
+    "max_us": 11573.221,
+    "stdev_us": 681.5471237594944
+  },
+  "render_cjk_100x6": {
+    "iters": 280,
+    "min_us": 4463.249,
+    "median_us": 7672.362999999999,
+    "mean_us": 7574.295785714286,
+    "max_us": 12389.006,
+    "stdev_us": 1314.5787309394343
+  },
+  "render_cjk_1000x8": {
+    "iters": 34,
+    "min_us": 79638.166,
+    "median_us": 101383.625,
+    "mean_us": 103063.05732352941,
+    "max_us": 136106.161,
+    "stdev_us": 14006.676498562172
+  },
+  "render_mixed_10x4": {
+    "iters": 299,
+    "min_us": 248.313,
+    "median_us": 435.458,
+    "mean_us": 429.8711137123746,
+    "max_us": 903.098,
+    "stdev_us": 114.36732221597565
+  },
+  "render_mixed_100x6": {
+    "iters": 280,
+    "min_us": 3697.533,
+    "median_us": 6636.8795,
+    "mean_us": 6610.727303571429,
+    "max_us": 13362.549,
+    "stdev_us": 1250.9248025975035
+  },
+  "render_mixed_1000x8": {
+    "iters": 34,
+    "min_us": 67539.459,
+    "median_us": 85941.0115,
+    "mean_us": 86629.2785,
+    "max_us": 109932.233,
+    "stdev_us": 9063.282137234703
+  },
+  "render_emoji_10x4": {
+    "iters": 299,
+    "min_us": 171.32,
+    "median_us": 300.295,
+    "mean_us": 327.55271571906354,
+    "max_us": 932.166,
+    "stdev_us": 102.37607697973777
+  },
+  "render_emoji_100x6": {
+    "iters": 280,
+    "min_us": 2459.803,
+    "median_us": 4365.758,
+    "mean_us": 4364.2849321428575,
+    "max_us": 7974.668,
+    "stdev_us": 815.3673966978355
+  },
+  "render_emoji_1000x8": {
+    "iters": 34,
+    "min_us": 39480.466,
+    "median_us": 57652.9835,
+    "mean_us": 56516.770088235295,
+    "max_us": 69740.849,
+    "stdev_us": 7422.462503460111
+  },
+  "pipe_md_100x3": {
+    "iters": 100,
+    "min_us": 2155.82,
+    "median_us": 3528.2455,
+    "mean_us": 3593.44827,
+    "max_us": 5424.726,
+    "stdev_us": 583.3949349741321
+  },
+  "pipe_csv_100x5": {
+    "iters": 100,
+    "min_us": 2906.988,
+    "median_us": 5250.1345,
+    "mean_us": 4996.55033,
+    "max_us": 7104.809,
+    "stdev_us": 967.8009743148791
+  }
+}
