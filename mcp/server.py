@@ -323,13 +323,18 @@ async def healthz(request):
 
 # ---------- main ----------
 
-def main():
-    import uvicorn
-    app = mcp.streamable_http_app(
+def create_app():
+    # 変換 tools と静的 resources は双方向通信を使わず、セッション保持が不要。
+    return mcp.streamable_http_app(
         streamable_http_path=MCP_PATH,
-        stateless_http=False,
+        stateless_http=True,
         host=MCP_HOST,
     )
+
+
+def main():
+    import uvicorn
+    app = create_app()
     print(
         f"aatable MCP: http://{MCP_HOST}:{MCP_PORT}{MCP_PATH}  (healthz: /healthz)",
         file=sys.stderr,
