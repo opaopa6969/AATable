@@ -9,7 +9,7 @@ on:
 jobs:
   lint-and-test:
     name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, AATable-ci]
     strategy:
       fail-fast: false
       matrix:
