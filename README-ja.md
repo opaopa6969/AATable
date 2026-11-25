@@ -56,10 +56,9 @@ AATable は `len()` を適切な `display_width()` に置き換えます:
 ## クイックスタート
 
 ```bash
-# 依存なし — Python 3.9+ のみ (標準ライブラリ)
+# 単体スクリプトは Python 3.9 以上の標準ライブラリだけで動きます。
 git clone https://github.com/opaopa6969/AATable.git
 cd AATable
-chmod +x aatable.py aafixwidth.py mmd2ge.py aacalibrate.py
 ```
 
 表形式データをパイプで渡すだけ:
@@ -70,6 +69,17 @@ echo '| 名前     | 年齢 |
 | 田中太郎 | 30   |
 | Alice    | 25   |' | python3 aatable.py
 ```
+
+テスト一式の実行には、`venv` と `pip` が使える Python 3.10 以上を用意します。
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+python -m pytest --tb=short
+```
+
+`run.sh` は、`/home/opa/aatable` に配置したデプロイ用チェックアウトから MCP サーバーを起動するスクリプトです。
 
 ---
 

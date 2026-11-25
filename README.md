@@ -55,10 +55,9 @@ AATable replaces `len()` with a proper `display_width()` that accounts for:
 ## Quick Start
 
 ```bash
-# No dependencies — Python 3.9+ only (stdlib)
+# The standalone scripts use only the Python 3.9+ standard library.
 git clone https://github.com/opaopa6969/AATable.git
 cd AATable
-chmod +x aatable.py aafixwidth.py mmd2ge.py aacalibrate.py
 ```
 
 Pipe any tabular data in:
@@ -69,6 +68,17 @@ echo '| name     | age |
 | 田中太郎 | 30  |
 | Alice    | 25  |' | python3 aatable.py
 ```
+
+To run the test suite, use Python 3.10 or later with `venv` and `pip` available.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+python -m pytest --tb=short
+```
+
+`run.sh` is the MCP server launcher for the deployment checkout at `/home/opa/aatable`.
 
 ---
 
